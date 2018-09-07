@@ -478,6 +478,7 @@ module Archlinux
 				deps=with_deps-orig
 			end
 			unless l.empty?
+				# m=MakepkgList.new(l.map {|p| Query.strip(p)}, config: @config)
 				m=MakepkgList.new(l.map {|p| Query.strip(p)})
 				deps.each { |dep| m[Query.strip(dep)]&.asdeps=true }
 				if block_given?

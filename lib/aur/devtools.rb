@@ -2,8 +2,8 @@ require 'aur/config'
 
 module Archlinux
 	class PacmanConf
-		def self.create(v)
-			v.is_a?(self) ? v : self.new(v, {}) #pass empty keywords so that a Hash is seen as an argument and not a list of keywords
+		def self.create(v, config: Archlinux.config)
+			v.is_a?(self) ? v : self.new(v, config: config) #pass empty keywords so that a Hash is seen as an argument and not a list of keywords
 		end
 
 		Archlinux.delegate_h(self, :@pacman_conf)

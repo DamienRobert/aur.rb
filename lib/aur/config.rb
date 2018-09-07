@@ -96,7 +96,7 @@ module Archlinux
 		end
 
 		def setup_pacman_conf(conf)
-			pacman=PacmanConf.create(conf)
+			pacman=PacmanConf.create(conf, config: self)
 			aur=self.db(false)
 			if aur and !pacman[:repos].include?(aur.repo_name)
 				pacman[:repos][aur.repo_name]={Server: ["file://#{URI.escape(aur.dir.to_s)}"]}
@@ -106,9 +106,9 @@ module Archlinux
 
 		def default_pacman_conf
 			@default_pacman_conf ||= if (conf=@opts[:pacman_conf])
-				PacmanConf.new(conf)
+				PacmanConf.new(conf, config: self)
 			else
-				PacmanConf
+				PacmanConf(config: self)
 			end
 		end
 
@@ -118,13 +118,13 @@ module Archlinux
 				# here we need the raw value, since this will be used by pacstrap
 				# which calls pacman --root; so the inferred path for DBPath and so
 				# on would not be correct since it is specified
-				devtools_pacman=PacmanConf.new(@opts[:devtools_pacman], raw: true)
+				devtools_pacman=PacmanConf.new(@opts[:devtools_pacman], raw: true, config: self)
 				# here we need to expand the config, so that Server =
 				# file://...$repo...$arch get their real values
 				my_pacman=default_pacman_conf
 				devtools_pacman[:repos].merge!(my_pacman.non_official_repos)
 				setup_pacman_conf(devtools_pacman)
-				@devtools_config = Devtools.new(pacman_conf: devtools_pacman)
+				@devtools_config = Devtools.new(pacman_conf: devtools_pacman, config: self)
 			end
 			@devtools_config
 		end
@@ -133,7 +133,7 @@ module Archlinux
 			unless @makepkg_config
 				makepkg_pacman=default_pacman_conf
 				setup_pacman_conf(makepkg_pacman)
-				@makepkg_config = Devtools.new(pacman_conf: makepkg_pacman)
+				@makepkg_config = Devtools.new(pacman_conf: makepkg_pacman, config: self)
 			end
 			@makepkg_config
 		end
