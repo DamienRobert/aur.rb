@@ -9,7 +9,8 @@
 
 ## Description
 
-TODO: Description
+A set of utilities to handle archlinux packages databases and aur
+installation.
 
 ## Features
 

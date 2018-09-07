@@ -1,6 +1,7 @@
 name: aur.rb
-summary: "TODO: Summary"
-description: "TODO: Description"
+summary: "Set of archlinux and aur utilities"
+description: "A set of utilities to handle archlinux packages databases and aur
+installation."
 license: MIT
 authors: Damien Robert
 email: Damien.Olivier.Robert+gems@gmail.com
