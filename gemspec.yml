@@ -7,8 +7,11 @@ authors: Damien Robert
 email: Damien.Olivier.Robert+gems@gmail.com
 homepage: https://github.com/DamienRobert/aur.rb#readme
 
+dependencies:
+  drain: ~> 0.3
+  shell_helpers: ~> 0.3
 development_dependencies:
   minitest: "~> 5.0"
   rake: "~> 10"
   rubygems-tasks: "~> 0.2"
-  yard: "~> 0.8"
+  yard: "~> 0.9"

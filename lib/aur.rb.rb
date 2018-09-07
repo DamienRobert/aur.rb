@@ -1,1 +1,0 @@
-require 'aur.rb/version'
