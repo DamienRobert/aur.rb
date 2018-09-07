@@ -111,7 +111,7 @@ module Archlinux
 		end
 
 		Archlinux.delegate_h(self, :@l)
-		attr_accessor :children_mode, :ext_query
+		attr_accessor :children_mode, :ext_query, :ignore, :query_ignore, :install_list, :install_method
 		attr_reader :l, :versions, :provides_for
 
 		def initialize(list)
@@ -122,10 +122,12 @@ module Archlinux
 			@children_mode=%i(depends) #children, default
 			@ignore=[] #ignore packages update
 			@query_ignore=[] #query ignore packages (ie these won't be returned by a query)
+			@install_list=nil
+			@install_method=nil
 			merge(list)
 		end
 
-		def packages
+		def names
 			@versions.keys
 		end
 
@@ -288,6 +290,10 @@ module Archlinux
 			end
 		end
 
+		def slice(*args)
+			self.class.new(@l.slice(*get(*args)))
+		end
+
 		private def call_tsort(l, method: :tsort, **opts, &b)
 			each_node=l.method(:each)
 			s=self
@@ -373,11 +379,11 @@ module Archlinux
 			end
 		end
 
-		def check_update(ext_query=@ext_query)
-			if ext_query
-				_found, new_pkgs=ext_query.call(*packages)
-				check_updates(new_pkgs)
-			end
+		# this take a list of packages which can be updates of ours
+		def check_update(updates=@install_list)
+			return [] if updates.nil?
+			new_pkgs=updates.slice(*packages)
+			check_updates(new_pkgs)
 		end
 
 		def update(**opts)
@@ -385,21 +391,41 @@ module Archlinux
 		end
 
 		# take a list of packages to install
-		def install(*packages, update: false, ext_query: @ext_query, verbose: true, obsolete: true)
-			packages+=self.packages if update
-			if ext_query
-				_found, new_pkgs=ext_query.call(*packages)
+		def install(*packages, update: false, install_list: @install_list, verbose: true, obsolete: true)
+			packages+=self.names if update
+			if install_list
+				new_pkgs=install_list.slice(*packages)
 				SH.logger.info "# Checking packages" if verbose
 				u=get_updates(new_pkgs, verbose: verbose, obsolete: obsolete)
 				new=self.class.new(l.values).merge(new_pkgs)
 				# The updates or new packages may need new deps
 				SH.logger.info "# Checking dependencies" if verbose
 				full=new.rget(*u)
-				full_updates=get_updates(new.values_at(*full), verbose: verbose, obsolete: obsolete)
+				# full_updates=get_updates(new.values_at(*full), verbose: verbose, obsolete: obsolete)
+				full_updates=get_updates(new.slice(*full), verbose: verbose, obsolete: obsolete)
 				yield u, full_updates if block_given?
 				full_updates
 			else
-				SH.logger.warn "External query not defined"
+				SH.logger.warn "External install list not defined"
+			end
+		end
+
+		def do_update(**opts, &b)
+			do_install(update: true, **opts, &b)
+		end
+
+		def do_install(*args, **opts)
+			install_opts={}
+			%i(update ext_query verbose obsolete).each do |key|
+				opts.key?(key) && install_opts[key]=opts.delete(key)
+			end
+			deps=[]
+			l=install(*args, **install_opts) do |orig, with_deps|
+				deps=with_deps-orig
+			end
+			yield l if block_given?
+			if @install_method
+				@install_method.call[l] unless l.empty?
 			end
 		end
 	end
@@ -409,7 +435,7 @@ module Archlinux
 			v.is_a?(self) ? v : self.new(v)
 		end
 
-		def initialize(l)
+		def initialize(l=[])
 			super
 			@ext_query=method(:ext_query)
 			@query_ignore=AurPackageList.official
@@ -421,13 +447,13 @@ module Archlinux
 			# the query fails so it gets called in ext_query
 			# remove these packages
 			# TODO: do the same for a provides query
-			pkgs-=self.packages
+			pkgs-=self.names
 			if pkgs.empty?
 				l=self.class.new([])
 			else
 				SH.logger.warn "! Calling aur for infos on: #{pkgs.join(', ')}"
 				l=AurQuery.packages(*pkgs)
-				@query_ignore += pkgs - l.packages #these don't exist in aur
+				@query_ignore += pkgs - l.names #these don't exist in aur
 			end
 			r=l.resolve(*queries, ext_query: false, fallback: false)
 			return r, l
@@ -449,45 +475,25 @@ module Archlinux
 
 		def initialize(l)
 			super
-			@missed=[]
-			@ext_query=method(:ext_query)
+			@install_list=self.class.cache
 			@children_mode=%i(depends make_depends check_depends)
+			@install_method=method(:install_method)
+		end
+
+		def install_method(l)
+			# m=MakepkgList.new(l.map {|p| Query.strip(p)}, config: @config)
+			m=MakepkgList.new(l.map {|p| Query.strip(p)})
+			deps.each { |dep| m[Query.strip(dep)]&.asdeps=true }
+			if block_given?
+				yield m 
+			else
+				m.install(**opts)
+			end
+			m
 		end
 
 		def official
 			self.class.official
-		end
-
-		def ext_query(*queries, provides: false)
-			cache=self.class.cache
-			got=cache.resolve(*queries, fallback: false, provides: provides)
-			return got, self.class.new(cache.l.slice(*got.values.compact))
-		end
-
-		def do_update(**opts, &b)
-			do_install(update: true, **opts)
-		end
-
-		def do_install(*args, **opts)
-			install_opts={}
-			%i(update ext_query verbose obsolete).each do |key|
-				opts.key?(key) && install_opts[key]=opts.delete(key)
-			end
-			deps=[]
-			l=install(*args, **install_opts) do |orig, with_deps|
-				deps=with_deps-orig
-			end
-			unless l.empty?
-				# m=MakepkgList.new(l.map {|p| Query.strip(p)}, config: @config)
-				m=MakepkgList.new(l.map {|p| Query.strip(p)})
-				deps.each { |dep| m[Query.strip(dep)]&.asdeps=true }
-				if block_given?
-					yield m 
-				else
-					m.install(**opts)
-				end
-				m
-			end
 		end
 	end
 end

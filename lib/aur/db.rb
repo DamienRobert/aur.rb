@@ -136,7 +136,8 @@ module Archlinux
 
 		def packages(refresh=false)
 			@packages=nil if refresh
-			@packages||=PackageList.new(list, config: @config)
+			# @packages||=PackageList.new(list, config: @config)
+			@packages||=PackageList.new(list)
 		end
 
 		def dir_packages
