@@ -1,0 +1,13 @@
+name: aur.rb
+summary: "TODO: Summary"
+description: "TODO: Description"
+license: MIT
+authors: Damien Robert
+email: Damien.Olivier.Robert+gems@gmail.com
+homepage: https://github.com/DamienRobert/aur.rb#readme
+
+development_dependencies:
+  minitest: "~> 5.0"
+  rake: "~> 10"
+  rubygems-tasks: "~> 0.2"
+  yard: "~> 0.8"
