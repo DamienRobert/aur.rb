@@ -1,10 +1,10 @@
 require 'helper'
-require 'aur.rb'
+require 'aur'
 
-class TestAur.rb < Minitest::Test
+class TestAur < Minitest::Test
 
   def test_version
-    version = Aur.rb.const_get('VERSION')
+    version = Archlinux.const_get('VERSION')
 
     assert(!version.empty?, 'should have a VERSION constant')
   end

@@ -1,4 +1,4 @@
-require 'aur.rb/version'
+require 'aur/version'
 require 'net/http'
 require 'json'
 require 'time'
@@ -10,7 +10,7 @@ require 'shell_helpers'
 module Archlinux
 	ArchlinuxError=Class.new(StandardError)
 	Utils=::DR::Utils
-	Pathname=::DR::Pathname
+	Pathname=::SH::Pathname
 
 	def self.delegate_h(klass, var)
 		klass.extend(Forwardable)
