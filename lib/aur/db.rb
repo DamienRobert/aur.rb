@@ -165,6 +165,7 @@ module Archlinux
 			add(*(r[:refresh].merge(r[:add])).map {|_k,v| other[v[:out_pkg]].file.shellescape})
 			# remove(*(r[:remove].map {|_k,v| packages[v[:in_pkg]].file.shellescape}))
 			remove(*(r[:remove].map {|_k,v| Query.strip(v[:in_pkg])}))
+			@packages=nil #we need to refresh the list
 			r
 		end
 	end

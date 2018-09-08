@@ -101,7 +101,6 @@ module Archlinux
 				unless @config.git_clone(url, @dir)
 					SH.logger.error("Error in cloning #{url} to #{@dir}")
 				end
-				SH.sh("git clone #{url.shellescape} #{@dir.shellescape}")
 				if logdir
 					(logdir+"!#{@dir.basename}").on_ln_s(@dir.realpath)
 				end
@@ -139,7 +138,7 @@ module Archlinux
 		def makechroot(*args, sign: @config.sign(:makechrootpkg), force: false, **opts)
 			unless force
 				if list.all? {|f| f.exist?}
-					SH.logger.info "Skipping #{@dir} since it is already built (use force=trye to override)"
+					SH.logger.info "Skipping #{@dir} since it is already built (use force=true to override)"
 					return false
 				end
 			end
@@ -154,7 +153,7 @@ module Archlinux
 
 		def add_to_db(db=@config.db)
 			SH.logger.warn "Bad database #{db}" unless db.is_a?(DB)
-			db.add(*list.select {|l| l.exist?})
+			db.add(*list.select {|l| r=l.exist?; SH.logger.warn "Package #{l} not built, not adding to the db #{db.repo_name}" unless r; r})
 		end
 
 		def build(*makepkg_args, mkarchroot: false, chroot: @config[:build_chroot], **opts)
