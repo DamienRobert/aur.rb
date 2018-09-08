@@ -20,4 +20,3 @@ aur.do_update
 # --devel
 # aur provides
 # @ignore
-# sudo loop

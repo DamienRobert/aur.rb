@@ -17,7 +17,9 @@ module Archlinux
 			file_config= file.readable? ? file.read : '{}'
 			wrap=eval("Proc.new { |context| #{file_config} }")
 			@opts=default_config.merge(opts)
-			@opts.merge!(wrap.call(self))
+			user_conf=wrap.call(self)
+			@opts.merge!(user_conf) if user_conf.is_a?(Hash)
+			run_sudo_loop if dig(:sudo_loop, :active)
 		end
 
 		def sh_config
@@ -57,7 +59,7 @@ module Archlinux
 				},
 				sudo_loop: {
 					command: "sudo -v",
-					interval: 2,
+					interval: 30,
 					active: false,
 				}
 			}
@@ -79,35 +81,17 @@ module Archlinux
 
 		def view(dir)
 			view=@opts[:view]
-			case view
-			when Proc
-				view.call(dir)
-			else
-				success, _rest=SH.sh("#{view} #{dir.shellescape}")
-				return success
-			end
+			SH.sh_or_proc(view, dir)
 		end
 
 		def git_update
 			method=@opts[:git][:update]
-			case method
-			when Proc
-				method.call(dir)
-			else
-				success, _rest=SH.sh(method)
-				return success
-			end
+			SH.sh_or_proc(method)
 		end
 
 		def git_clone(url, dir)
 			method=@opts[:git][:clone]
-			case method
-			when Proc
-				method.call(url, dir)
-			else
-				success, _rest=SH.sh("#{method} #{url.shellescape} #{dir.shellescape}")
-				return success
-			end
+			SH.sh_or_proc(method, url, dir)
 		end
 
 		def cachedir
@@ -140,7 +124,7 @@ module Archlinux
 				# here we need the raw value, since this will be used by pacstrap
 				# which calls pacman --root; so the inferred path for DBPath and so
 				# on would not be correct since it is specified
-				devtools_pacman=PacmanConf.new(dig(:config_files,:chroot,:pacman)||default_pacman_conf, raw: true, config: self)
+				devtools_pacman=PacmanConf.new(get_config_file(:pacman, type: :chroot))
 				# here we need to expand the config, so that Server =
 				# file://...$repo...$arch get their real values
 				my_pacman=default_pacman_conf
@@ -153,8 +137,7 @@ module Archlinux
 
 		def makepkg_config
 			unless @makepkg_config
-				#makepkg_pacman=default_pacman_conf
-				makepkg_pacman=dig(:config_files,:local,:pacman) || default_pacman_conf
+				makepkg_pacman=get_config_file(:pacman, type: :local)
 				setup_pacman_conf(makepkg_pacman)
 				@makepkg_config = Devtools.new(pacman_conf: makepkg_pacman, config: self)
 			end
@@ -199,14 +182,21 @@ module Archlinux
 			self.db=nil
 		end
 
-		def run_sudo_loop(command: dig(:sudo_loop,:command), interval: dig(:sudo_loop, :interval))
-			@sudo_loop_thread ||= Thread.new do
-				loop do
-					SH.sh(command)
-					sleep(interval)
+		def run_sudo_loop(command: dig(:sudo_loop,:command), interval: dig(:sudo_loop, :interval), init_command: dig(:sudo_loop, :init_command) || command)
+			if @sudo_loop_thread.nil? or !@sudo_loop_thread.alive?
+				SH.sh_or_proc(init_command, log: false)
+				@sudo_loop_thread = Thread.new do
+					loop do
+						SH.sh_or_proc(command, log: false)
+						sleep(interval)
+					end
 				end
+				@sudo_loop_thread.run
 			end
-			@sudo_loop_thread.run
+		end
+
+		def stop_sudo_loop
+			@sudo_loop_thread&.kill
 		end
 	end
 
