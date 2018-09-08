@@ -321,11 +321,12 @@ module Archlinux
 		end
 
 		# check updates compared to another list
-		def check_updates(l)
+		def check_updates(l, ignore: @ignore)
 			l=self.class.create(l)
 			a=self.latest; b=l.latest
 			r={}
 			b.each do |k, v|
+				next if ignore.include?(k)
 				if a.key?(k)
 					v1=a[k].version
 					v2=v.version
@@ -347,6 +348,7 @@ module Archlinux
 				end
 			end
 			(a.keys-b.keys).each do |k|
+				next if ignore.include?(k)
 				r[k]={op: :obsolete,
 					in: a[k].version.to_s,
 					out: nil, in_pkg: name_of(a[k])}
@@ -358,8 +360,8 @@ module Archlinux
 			r.select {|_k,v| v[:op]==:upgrade or v[:op]==:install}.map {|_k, v| v[:out_pkg]}
 		end
 
-		def get_updates(l, verbose: true, obsolete: true)
-			c=check_updates(l)
+		def get_updates(l, verbose: true, obsolete: true, ignore: @ignore)
+			c=check_updates(l, ignore: ignore)
 			show_updates(c, obsolete: obsolete) if verbose
 			select_updates(c)
 		end
@@ -380,10 +382,10 @@ module Archlinux
 		end
 
 		# this take a list of packages which can be updates of ours
-		def check_update(updates=@install_list)
+		def check_update(updates=@install_list, ignore: @ignore)
 			return [] if updates.nil?
 			new_pkgs=updates.slice(*packages)
-			check_updates(new_pkgs)
+			check_updates(new_pkgs, ignore: ignore)
 		end
 
 		def update(**opts)
@@ -391,18 +393,19 @@ module Archlinux
 		end
 
 		# take a list of packages to install
-		def install(*packages, update: false, install_list: @install_list, verbose: true, obsolete: true)
+		def install(*packages, update: false, install_list: @install_list, verbose: true, obsolete: true, ignore: @ignore)
 			packages+=self.names if update
 			if install_list
+				ignore -= packages.map {|p| Query.strip(p)}
 				new_pkgs=install_list.slice(*packages)
 				SH.logger.info "# Checking packages" if verbose
-				u=get_updates(new_pkgs, verbose: verbose, obsolete: obsolete)
+				u=get_updates(new_pkgs, verbose: verbose, obsolete: obsolete, ignore: ignore)
 				new=self.class.new(l.values).merge(new_pkgs)
 				# The updates or new packages may need new deps
 				SH.logger.info "# Checking dependencies" if verbose
 				full=new.rget(*u)
 				# full_updates=get_updates(new.values_at(*full), verbose: verbose, obsolete: obsolete)
-				full_updates=get_updates(new.slice(*full), verbose: verbose, obsolete: obsolete)
+				full_updates=get_updates(new.slice(*full), verbose: verbose, obsolete: obsolete, ignore: ignore)
 				yield u, full_updates if block_given?
 				full_updates
 			else
