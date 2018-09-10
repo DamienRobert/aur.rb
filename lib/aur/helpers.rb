@@ -25,4 +25,10 @@ module Archlinux
 		end
 	end
 
+	module CreateHelper
+		def create(v, config: Archlinux.config)
+			v.is_a?(self) ? v : self.new(v, config: config)
+		end
+	end
+
 end

@@ -4,10 +4,7 @@ require 'aur/packages'
 
 module Archlinux
 	class Makepkg
-		def self.create(v)
-			v.is_a?(self) ? v : self.new(v)
-		end
-
+		extend CreateHelper
 		attr_accessor :dir, :base, :env, :config, :asdeps
 
 		def initialize(dir, config: Archlinux.config, env: {}, asdeps: false)
@@ -68,7 +65,7 @@ module Archlinux
 					pkg[:name]=name
 					Package.new(pkg).merge(base)
 				end
-				@packages=PackageList.new(list)
+				@packages=@config.to_packages(list)
 			end
 			@packages
 		end
@@ -197,10 +194,7 @@ module Archlinux
 	end
 
 	class MakepkgList
-		def self.create(v)
-			v.is_a?(self) ? v : self.new(v)
-		end
-
+		extend CreateHelper
 		Archlinux.delegate_h(self, :@l)
 		attr_accessor :config, :cache, :l
 

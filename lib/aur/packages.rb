@@ -106,15 +106,13 @@ module Archlinux
 	end
 
 	class PackageList
-		def self.create(v)
-			v.is_a?(self) ? v : self.new(v)
-		end
+		extend CreateHelper
 
 		Archlinux.delegate_h(self, :@l)
 		attr_accessor :children_mode, :ext_query, :ignore, :query_ignore, :install_list, :install_method
 		attr_reader :l, :versions, :provides_for
 
-		def initialize(list)
+		def initialize(list, config: Archlinux.config)
 			@l={}
 			@versions={} #hash of versions for quick look ups
 			@provides_for={} #hash of provides for quick look ups
@@ -124,6 +122,7 @@ module Archlinux
 			@query_ignore=[] #query ignore packages (ie these won't be returned by a query)
 			@install_list=nil
 			@install_method=nil
+			@config=config
 			merge(list)
 		end
 
@@ -486,8 +485,7 @@ module Archlinux
 		end
 
 		def install_method(l)
-			# m=MakepkgList.new(l.map {|p| Query.strip(p)}, config: @config)
-			m=MakepkgList.new(l.map {|p| Query.strip(p)})
+			m=MakepkgList.new(l.map {|p| Query.strip(p)}, config: @config)
 			if block_given?
 				m=yield m #return false to prevent install
 			end

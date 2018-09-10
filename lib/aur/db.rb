@@ -4,9 +4,7 @@ require 'time'
 
 module Archlinux
 	class DB
-		def self.create(v)
-			v.is_a?(self) ? v : self.new(v)
-		end
+		extend CreateHelper
 
 		def self.db_file?(name)
 			case name
@@ -137,7 +135,7 @@ module Archlinux
 		def packages(refresh=false)
 			@packages=nil if refresh
 			# @packages||=PackageList.new(list, config: @config)
-			@packages||=PackageList.new(list)
+			@packages||=@config.to_packages(list)
 		end
 
 		def dir_packages

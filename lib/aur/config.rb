@@ -36,6 +36,7 @@ module Archlinux
 					active: false, #do we use the chroot?
 					update: 'pacman -Syu --noconfirm', #how to update an existing chroot
 				},
+				packages: :AurPackageList,
 				sign: true, #can be made more atomic, cf the sign method
 				config_files: {
 					default: {
@@ -197,6 +198,10 @@ module Archlinux
 
 		def stop_sudo_loop
 			@sudo_loop_thread&.kill
+		end
+
+		def to_packages(l)
+			self.class.const_get(@opts[:packages]).new(l)
 		end
 	end
 

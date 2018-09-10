@@ -4,12 +4,11 @@ require 'time'
 
 module Archlinux
 	class Repo
-		def self.create(v)
-			v.is_a?(self) ? v : self.new(v)
-		end
+		extend CreateHelper
 
-		def initialize(name)
+		def initialize(name, config: Archlinux.config)
 			@repo=name
+			@config=config
 		end
 
 		def list(mode: :pacsift)
@@ -26,7 +25,7 @@ module Archlinux
 
 		def packages(refresh=false)
 			@packages=nil if refresh
-			@packages ||= PackageList.new(self.class.info(*list))
+			@packages ||= @config.to_packages(self.class.info(*list))
 		end
 
 		def self.pacman_info(*pkgs, local: false) #local=true refers to the local db info
