@@ -200,7 +200,7 @@ module Archlinux
 			@sudo_loop_thread&.kill
 		end
 
-		def to_packages(l)
+		def to_packages(l=[])
 			Archlinux.const_get(@opts[:packages]).new(l)
 		end
 	end

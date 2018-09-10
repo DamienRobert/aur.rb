@@ -65,6 +65,9 @@ module Archlinux
 				end
 				@props[k]=v
 			end
+			if !@props[:version] and @props[:pkgver]
+				@props[:version]=Version.new(@props[:epoch], @props[:pkgver], @props[:pkgrel]).to_s
+			end
 		end
 
 		def merge(h)
@@ -482,8 +485,8 @@ module Archlinux
 
 		def ext_query(*queries, **opts)
 			pkgs=queries.map {|p| Query.strip(p)}
-			l=MakepkgList.new(pkgs).select {|m| m.exist?}
-			MakepkgList.new(l).packages.as_ext_query(*queries, full_packages: true, **opts)
+			l=MakepkgList.new(pkgs).values.select {|m| m.exist?}
+			MakepkgList.new(l).packages.as_ext_query(*queries, full_pkgs: true, **opts)
 		end
 	end
 
@@ -497,7 +500,7 @@ module Archlinux
 		def ext_query(*queries, **opts)
 			pkgs=queries.map {|p| Query.strip(p)}
 			l=MakepkgList.new(pkgs).packages(get: true)
-			l.as_ext_query(*queries, full_packages: true, **opts)
+			l.as_ext_query(*queries, full_pkgs: true, **opts)
 		end
 	end
 

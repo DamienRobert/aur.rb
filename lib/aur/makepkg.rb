@@ -8,7 +8,7 @@ module Archlinux
 		attr_accessor :dir, :base, :env, :config, :asdeps
 
 		def initialize(dir, config: Archlinux.config, env: {}, asdeps: false)
-			@dir=DR::Pathname.new(dir)
+			@dir=Pathname.new(dir)
 			@base=@dir.basename
 			@config=config
 			@env=env
@@ -41,11 +41,13 @@ module Archlinux
 				key, value=l.split(/\s*=\s*/,2)
 				next if key.nil?
 				if key=="pkgbase"
-					mode=:pkgbase; current[:pkgbase]=value
+					mode=:pkgbase
+					current[:pkgbase]=value
+					current[:repo]=@dir
 				elsif key=="pkgname"
 					if mode==:pkgbase
 						r=current
-						r[:pkgs]={repo: @dir}
+						r[:pkgs]={}
 					else
 						r[:pkgs][pkgname]=current
 					end
@@ -62,9 +64,9 @@ module Archlinux
 		def packages(refresh=false, get: false)
 			@packages=nil if refresh
 			unless @packages
-				r=info(get: true)
+				r=info(get: get)
 				pkgs=r.delete(:pkgs)
-				r[:pkgbase]
+				# r[:pkgbase]
 				base=Package.new(r)
 				list=pkgs.map do |name, pkg|
 					pkg[:name]=name
@@ -211,15 +213,15 @@ module Archlinux
 				unless m.is_a?(Makepkg)
 					m=Pathname.new(m)
 					m = @cache+m if m.relative?
-					v=Makepkg.new(m, config: @config)
-					@l[v.name]=v
+					m=Makepkg.new(m, config: @config)
 				end
+				@l[m.name]=m
 			end
 		end
 
 		def packages(refresh=false, get: false)
 			@packages = nil if refresh
-			@packages ||= @l.values.reduce do |list, makepkg|
+			@packages ||= @l.values.reduce(@config.to_packages) do |list, makepkg|
 				list.merge(makepkg.packages(get: get))
 			end
 		end

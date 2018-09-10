@@ -8,9 +8,23 @@ module Archlinux
 
 		include Comparable
 		attr_reader :epoch, :version, :pkgrel
-		def initialize(v)
-			@v=v
-			parse(v)
+		def initialize(*v)
+			if v.length==1
+				@v=v.first
+				parse(@v)
+			elsif v.empty?
+				@epoch=-1 #any version is better than empty version
+				@version=Gem::Version.new(0)
+				@pkgrel=nil
+			else
+				@v=v
+				epoch, version, pkgrel=v
+				@epoch=epoch || 0
+				@real_epoch= epoch ? true : false
+				@real_version=version
+				@version=Gem::Version.new(version)
+				@pkgrel=pkgrel
+			end
 		end
 
 		private def parse(v)
@@ -29,7 +43,8 @@ module Archlinux
 			end
 			@epoch=epoch
 			version, pkgrel=Utils.rsplit(rest, '-', 2)
-			version.tr!('+_','.')
+			@real_version=version
+			version=version.tr('+_','.')
 			@version=Gem::Version.new(version) rescue Gem::Version.new("0.#{version}")
 			@pkgrel=pkgrel.to_i
 		end
@@ -47,12 +62,12 @@ module Archlinux
 		end
 
 		def to_s
-			@v
-			# r=""
-			# r << "#{@epoch}:" if @real_epoch
-			# r << "#{@version}"
-			# r << "-#{@pkgrel}" if @pkgrel
-			# r
+			# @v.to_s
+			r=""
+			r << "#{@epoch}:" if @real_epoch
+			r << "#{@real_version}"
+			r << "-#{@pkgrel}" if @pkgrel
+			r
 		end
 
 		# strip version information from a package name
