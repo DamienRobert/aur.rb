@@ -134,6 +134,10 @@ module Archlinux
 		def name_of(pkg)
 			pkg.name_version
 		end
+		
+		def packages
+			self
+		end
 
 		def same?(other)
 			unless @l.keys == other.keys
@@ -151,12 +155,11 @@ module Archlinux
 		end
 
 		def merge(l)
-			# l=l.values if l.is_a?(PackageList) # this is handled below
 			l= case l
-				when Hash
-					l.values.compact
 				when PackageList
 					l.values
+				when Hash
+					l.values.compact
 				else
 					l.to_a
 				end
@@ -223,7 +226,7 @@ module Archlinux
 			matches
 		end
 
-		def to_a
+		def to_a #we want PackageList.new(self) to work
 			@l.values
 		end
 
@@ -273,9 +276,20 @@ module Archlinux
 			got
 		end
 
+		# this gives the keys
 		def get(*args)
 			#compact because the resolution can be nil for an ignored package
 			resolve(*args).values.compact
+		end
+
+		# this gives the values
+		def get_packages(*args)
+			l.values_at(*get(*args))
+		end
+
+		# this is like a 'restrict' operation
+		def slice(*args)
+			self.class.new(@l.slice(*get(*args)))
 		end
 
 		def children(node, mode=@children_mode, verbose: false, **opts, &b)
@@ -288,10 +302,6 @@ module Archlinux
 			else
 				deps
 			end
-		end
-
-		def slice(*args)
-			self.class.new(@l.slice(*get(*args)))
 		end
 
 		private def call_tsort(l, method: :tsort, **opts, &b)
@@ -406,7 +416,7 @@ module Archlinux
 				full=new.rget(*u)
 				# full_updates=get_updates(new.values_at(*full), verbose: verbose, obsolete: obsolete)
 				full_updates=get_updates(new.slice(*full), verbose: verbose, obsolete: obsolete, ignore: ignore)
-				yield u, full_updates if block_given?
+				full_updates=yield full_updates, u if block_given?
 				full_updates
 			else
 				SH.logger.warn "External install list not defined"
@@ -417,18 +427,14 @@ module Archlinux
 			do_install(update: true, **opts, &b)
 		end
 
-		def do_install(*args, **opts)
+		def do_install(*args, callback: nil, **opts)
 			install_opts={}
 			%i(update ext_query verbose obsolete).each do |key|
 				opts.key?(key) && install_opts[key]=opts.delete(key)
 			end
-			deps=[]
-			l=install(*args, **install_opts) do |orig, with_deps|
-				deps=with_deps-orig
-			end
-			yield l if block_given?
+			l=install(*args, **install_opts, &callback) #return false in the callback to prevent install
 			if @install_method
-				@install_method.call[l] unless l.empty?
+				@install_method.call[l, &b] unless !l or l.empty?
 			end
 		end
 	end
@@ -486,13 +492,25 @@ module Archlinux
 		def install_method(l)
 			# m=MakepkgList.new(l.map {|p| Query.strip(p)}, config: @config)
 			m=MakepkgList.new(l.map {|p| Query.strip(p)})
-			deps.each { |dep| m[Query.strip(dep)]&.asdeps=true }
 			if block_given?
-				yield m 
-			else
-				m.install(**opts)
+				m=yield m #return false to prevent install
 			end
+			m.install(**opts) if m
 			m
+		end
+
+		def install(*args, callback: nil, **opts)
+			deps=[]
+			our_callback = lambda do |with_deps, orig|
+				deps=with_deps-orig
+				callback.call(orig, with_deps)
+				with_deps #we don't want to modify the installed packages
+			end
+			super(*args, callback: our_callback, **opts) do |m|
+				deps.each { |dep| m[Query.strip(dep)]&.asdeps=true }
+				m=yield m if block_given?
+				m
+			end
 		end
 
 		def official

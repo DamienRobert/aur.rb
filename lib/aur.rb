@@ -19,4 +19,3 @@ aur.do_update
 # TODO:
 # --devel
 # aur provides
-# @ignore
