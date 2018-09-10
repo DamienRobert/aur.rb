@@ -104,7 +104,7 @@ module Archlinux
 			# %i(pacman_conf makepkg_conf).each do |key|
 			# 	@opts[key]=@opts[key].tempfile.file if @opts[key].respond_to?(:tempfile)
 			# end
-			@opts[:chroot]=Pathname.new(@opts[:chroot]) if @opts[:chroot]
+			root=@opts.dig(:chroot, :root) and @opts[:chroot][:root]=Pathname.new(root)
 			add_binds
 		end
 
@@ -157,7 +157,7 @@ module Archlinux
 		end
 
 
-		def nspawn(*args, root: @opts[:chroot]+'root', default_opts: [], **opts)
+		def nspawn(*args, root: @opts.dig(:chroot,:root)+'root', default_opts: [], **opts)
 			files do |key, file|
 				default_opts += ["-C", file] if key==:pacman_conf
 				default_opts += ["-M", file] if key==:makepkg_conf
@@ -180,12 +180,12 @@ module Archlinux
 		end
 
 		# this takes the same options as nspawn
-		def mkarchroot(*args, nspawn: @config[:chroot_update], default_opts: [], **opts)
+		def mkarchroot(*args, nspawn: @opts.dig(:chroot, :update), default_opts: [], **opts)
 			files do |key, file|
 				default_opts += ["-C", file] if key==:pacman_conf
 				default_opts += ["-M", file] if key==:makepkg_conf
 			end
-			chroot=@opts[:chroot]
+			chroot=@opts.dig(:chroot,:root)
 			chroot.sudo_mkpath unless chroot.directory?
 			args.unshift(chroot+'root')
 			if (chroot+'root'+'.arch-chroot').file?
@@ -206,7 +206,7 @@ module Archlinux
 		end
 
 		def makechrootpkg(*args, default_opts: [], **opts)
-			default_opts+=['-r', @opts[:chroot]]
+			default_opts+=['-r', @opts.dig(:chroot, :root)]
 			if (binds_ro=@opts[:bind_ro])
 				binds_ro.each do |b|
 					default_opts += ["-D", b]

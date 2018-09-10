@@ -67,7 +67,7 @@ module Archlinux
 		end
 
 		def get_config_file(name, type: :default)
-			dig(type, name) || dig(:default, name)
+			dig(:config_files, type, name) || dig(:config_files, :default, name)
 		end
 
 		#:makepkg, :makechrootpkg, :repo (=repo-add, repo-remove)
@@ -115,7 +115,7 @@ module Archlinux
 			@default_pacman_conf ||= if (conf=get_config_file(:pacman))
 				PacmanConf.new(conf, config: self)
 			else
-				PacmanConf(config: self)
+				PacmanConf.new(config: self)
 			end
 		end
 

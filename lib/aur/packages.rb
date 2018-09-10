@@ -425,14 +425,14 @@ module Archlinux
 			do_install(update: true, **opts, &b)
 		end
 
-		def do_install(*args, callback: nil, **opts)
+		def do_install(*args, callback: nil, **opts, &b)
 			install_opts={}
 			%i(update ext_query verbose obsolete).each do |key|
 				opts.key?(key) && install_opts[key]=opts.delete(key)
 			end
 			l=install(*args, **install_opts, &callback) #return false in the callback to prevent install
 			if @install_method
-				@install_method.call[l, &b] unless !l or l.empty?
+				@install_method.call(l, **opts, &b) unless !l or l.empty?
 			end
 		end
 
@@ -525,7 +525,7 @@ module Archlinux
 			self.class.official
 		end
 
-		def install_method(l)
+		def install_method(l, **opts)
 			m=MakepkgList.new(l.map {|p| Query.strip(p)}, config: @config)
 			if block_given?
 				m=yield m #return false to prevent install
@@ -538,7 +538,7 @@ module Archlinux
 			deps=[]
 			our_callback = lambda do |with_deps, orig|
 				deps=with_deps-orig
-				callback.call(orig, with_deps)
+				callback.call(orig, with_deps) if callback
 				with_deps #we don't want to modify the installed packages
 			end
 			super(*args, callback: our_callback, **opts) do |m|
