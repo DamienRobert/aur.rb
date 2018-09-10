@@ -5,12 +5,13 @@ require 'aur/config'
 require 'aur/packages'
 
 module Archlinux
+
+	AurQueryError=Class.new(ArchlinuxError)
+
 	module AurQuery
 		extend self
 		attr_accessor :config
 		@config=Archlinux.config
-
-		AurQueryError=Class.new(ArchlinuxError)
 
 		# AurQuery.query(type: "info", arg: pacaur)
 		# AurQuery.query(type: "info", :"arg[]" => %w(cower pacaur))
@@ -130,6 +131,18 @@ module Archlinux
 					return gz.each_line.map(&:chomp).drop(1)
 				end
 			end
+		end
+	end
+
+	class AurQueryCustom
+		extend CreateHelper
+
+		def initialize(config: AurQuery.config)
+			@config=config
+		end
+
+		def packages(*pkgs)
+			@config.to_packages(infos(*pkgs))
 		end
 	end
 end
