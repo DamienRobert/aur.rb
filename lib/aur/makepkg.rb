@@ -21,8 +21,12 @@ module Archlinux
 			@base.to_s
 		end
 
+		def pkgbuild
+			@dir+"PKGBUILD"
+		end
+
 		def exist?
-			(@dir+"PKGBUILD").exist?
+			pkgbuild.exist?
 		end
 
 		def call(*args, run: :run_simple, **opts)
@@ -34,7 +38,7 @@ module Archlinux
 		end
 
 		def info(get: true)
-			self.get if !exist? and get
+			self.get(mode: get) if !exist? and get
 			stdin=call("--printsrcinfo", chomp: :lines)
 			mode=nil; r={}; current={}; pkgbase=nil; pkgname=nil
 			stdin.each do |l|
@@ -81,13 +85,15 @@ module Archlinux
 			@config[:aur_url]+@base.to_s+".git"
 		end
 
-		def get(logdir: nil, view: false)
+		def get(logdir: nil, view: false, mode: :update_or_clone)
+			mode=:update_or_clone if mode == true
+			mode=mode.to_s.split('_') unless mode.is_a?(Array)
 			#SH.sh("vcs clone_or_update --diff #{url.shellescape} #{@dir.shellescape}")
 			if logdir
 				logdir=DR::Pathname.new(logdir)
 				logdir.mkpath
 			end
-			if @dir.exist?
+			if @dir.exist? and mode.include?("update")
 				# TODO: what if @dir exist but is not a git directory?
 				@dir.chdir do
 					unless @config.git_update
@@ -101,13 +107,16 @@ module Archlinux
 						end
 					end
 				end
-			else
+			elsif !@dir.exist? and mode.include?("clone")
 				unless @config.git_clone(url, @dir)
 					SH.logger.error("Error in cloning #{url} to #{@dir}")
 				end
 				if logdir
 					(logdir+"!#{@dir.basename}").on_ln_s(@dir.realpath)
 				end
+			end
+			if pkgver? and mode.include("pkgver")
+				get_source
 			end
 			if view
 				return @config.view(@dir)
@@ -119,6 +128,19 @@ module Archlinux
 		# raw call to makepkg
 		def makepkg(*args, **opts)
 			call(*args, run: :sh, **opts)
+		end
+
+		def pkgver?
+			exist? and pkgbuild.read.match(/^\s*pkgver()/)
+		end
+
+		def get_source
+			tools=@config.makepkg_config #this set up pacman and makepkg config files
+			success=false
+			@dir.chdir do
+				success=tools.makepkg('--nobuild')
+			end
+			success
 		end
 
 		def make(*args, sign: config.sign(:makepkg), default_opts: [], force: false, asdeps: @asdeps, **opts)
