@@ -226,10 +226,6 @@ module Archlinux
 			matches
 		end
 
-		def to_a #we want PackageList.new(self) to work
-			@l.values
-		end
-
 		# here the arguments are Strings
 		# return the arguments replaced by eventual provides + missing packages
 		# are added to @l
@@ -499,7 +495,7 @@ module Archlinux
 			m
 		end
 
-		def install(*args, callback: nil, **opts)
+		def do_install(*args, callback: nil, **opts)
 			deps=[]
 			our_callback = lambda do |with_deps, orig|
 				deps=with_deps-orig
