@@ -31,7 +31,7 @@ module Archlinux
 			version, pkgrel=Utils.rsplit(rest, '-', 2)
 			version.tr!('+_','.')
 			@version=Gem::Version.new(version) rescue Gem::Version.new("0.#{version}")
-			@pkgrel=pkgrel
+			@pkgrel=pkgrel.to_i
 		end
 		
 		def <=>(w)

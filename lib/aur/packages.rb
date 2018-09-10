@@ -260,13 +260,13 @@ module Archlinux
 					end
 				end
 				unless new_queries.empty?
-					SH.logger.add(log_fallback, "Trying fallback for packages: #{new_queries.keys.join(', ')}")
+					SH.logger.send(log_fallback, "Trying fallback for packages: #{new_queries.keys.join(', ')}")
 					fallback_got=self.resolve(*new_queries.values, provides: provides, ext_query: ext_query, fallback: false, log_missing: :quiet, **opts)
 					got.merge!(fallback_got)
-					SH.logger.add(log_missing, "Missing packages: #{missed.map {|m| r=m; r<<" [fallback: #{fallback}]" if (fallback=fallback_got[new_queries[m]]); r}.join(', ')}") unless missed.empty?
+					SH.logger.send(log_missing, "Missing packages: #{missed.map {|m| r=m; r<<" [fallback: #{fallback}]" if (fallback=fallback_got[new_queries[m]]); r}.join(', ')}") unless missed.empty?
 				end
 			else
-				SH.logger.add(log_missing, "Missing packages: #{missed.join(', ')}") unless missed.empty?
+				SH.logger.send(log_missing, "Missing packages: #{missed.join(', ')}") unless missed.empty?
 			end
 			got
 		end
@@ -402,12 +402,12 @@ module Archlinux
 			packages+=self.names if update
 			if install_list
 				ignore -= packages.map {|p| Query.strip(p)}
+				SH.logger.info "# Checking packages #{packages.join(', ')}" if verbose
 				new_pkgs=install_list.slice(*packages)
-				SH.logger.info "# Checking packages" if verbose
 				u=get_updates(new_pkgs, verbose: verbose, obsolete: obsolete, ignore: ignore)
 				new=self.class.new(l.values).merge(new_pkgs)
 				# The updates or new packages may need new deps
-				SH.logger.info "# Checking dependencies" if verbose
+				SH.logger.info "# Checking dependencies of #{u.join(', ')}" if verbose
 				full=new.rget(*u)
 				# full_updates=get_updates(new.values_at(*full), verbose: verbose, obsolete: obsolete)
 				full_updates=get_updates(new.slice(*full), verbose: verbose, obsolete: obsolete, ignore: ignore)
@@ -448,18 +448,10 @@ module Archlinux
 
 	# cache aur queries
 	class AurCache < PackageList
-		def self.official
-			@official||=%w(core extra community).map {|repo| Repo.new(repo).list(mode: :pacman)}.flatten.compact
-		end
 
 		def initialize(*args)
 			super
 			@ext_query=method(:ext_query)
-			@query_ignore=official
-		end
-
-		def official
-			self.class.official
 		end
 
 		def ext_query(*queries, **_opts)
@@ -514,11 +506,20 @@ module Archlinux
 			@cache ||= AurCache.new([])
 		end
 
-		def initialize(l)
+		def self.official
+			@official||=%w(core extra community).map {|repo| Repo.new(repo).list(mode: :pacman)}.flatten.compact
+		end
+
+		def initialize(*args)
 			super
 			@install_list=self.class.cache
 			@children_mode=%i(depends make_depends check_depends)
 			@install_method=method(:install_method)
+			@query_ignore=official
+		end
+
+		def official
+			self.class.official
 		end
 
 		def install_method(l)

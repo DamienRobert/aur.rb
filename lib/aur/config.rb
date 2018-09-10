@@ -201,7 +201,7 @@ module Archlinux
 		end
 
 		def to_packages(l)
-			self.class.const_get(@opts[:packages]).new(l)
+			Archlinux.const_get(@opts[:packages]).new(l)
 		end
 	end
 
