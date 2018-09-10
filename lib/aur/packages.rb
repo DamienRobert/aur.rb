@@ -112,7 +112,7 @@ module Archlinux
 		attr_accessor :children_mode, :ext_query, :ignore, :query_ignore, :install_list, :install_method
 		attr_reader :l, :versions, :provides_for
 
-		def initialize(list, config: Archlinux.config)
+		def initialize(list=[], config: Archlinux.config)
 			@l={}
 			@versions={} #hash of versions for quick look ups
 			@provides_for={} #hash of provides for quick look ups
@@ -432,17 +432,33 @@ module Archlinux
 				@install_method.call[l, &b] unless !l or l.empty?
 			end
 		end
+
+		#returns a Proc that can be used for another PackageList as an ext_query
+		def to_ext_query
+			method(:as_ext_query)
+		end
+
+		def as_ext_query(*queries, provides: false)
+			r=self.resolve(*queries, provides: provides, fallback: false)
+			l=slice(r.values)
+			return r, l
+		end
+
 	end
 
 	class AurCache < PackageList
-		def self.create(v)
-			v.is_a?(self) ? v : self.new(v)
+		def self.official
+			@official||=%w(core extra community).map {|repo| Repo.new(repo).list(mode: :pacman)}.flatten.compact
 		end
 
-		def initialize(l=[])
+		def initialize(*args)
 			super
 			@ext_query=method(:ext_query)
-			@query_ignore=AurPackageList.official
+			@query_ignore=official
+		end
+
+		def official
+			self.class.official
 		end
 
 		def ext_query(*queries, provides: false)
@@ -465,14 +481,6 @@ module Archlinux
 	end
 
 	class AurPackageList < PackageList
-		def self.create(v)
-			v.is_a?(self) ? v : self.new(v)
-		end
-
-		def self.official
-			@official||=%w(core extra community).map {|repo| Repo.new(repo).list(mode: :pacman)}.flatten.compact
-		end
-
 		def self.cache
 			@cache ||= AurCache.new([])
 		end
@@ -507,8 +515,5 @@ module Archlinux
 			end
 		end
 
-		def official
-			self.class.official
-		end
 	end
 end
