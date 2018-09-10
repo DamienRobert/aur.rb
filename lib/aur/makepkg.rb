@@ -21,6 +21,10 @@ module Archlinux
 			@base.to_s
 		end
 
+		def exist?
+			(@dir+"PKGBUILD").exist?
+		end
+
 		def call(*args, run: :run_simple, **opts)
 			@config.launch(:makepkg, *args, **opts) do |*args, **opts|
 				@dir.chdir do

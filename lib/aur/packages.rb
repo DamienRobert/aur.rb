@@ -228,7 +228,7 @@ module Archlinux
 		# here the arguments are Strings
 		# return the arguments replaced by eventual provides + missing packages
 		# are added to @l
-		def resolve(*queries, provides: true, ext_query: @ext_query, fallback: true, **opts)
+		def resolve(*queries, provides: true, ext_query: @ext_query, fallback: true, log_missing: :warn, log_fallback: :warn, **opts)
 			got={}; missed=[]
 			pkgs=queries.map {|p| Query.strip(p)}
 			ignored = pkgs & @query_ignore
@@ -260,13 +260,13 @@ module Archlinux
 					end
 				end
 				unless new_queries.empty?
-					SH.logger.warn "Trying fallback for packages: #{new_queries.keys.join(', ')}"
-					fallback_got=self.resolve(*new_queries.values, provides: provides, ext_query: ext_query, fallback: false, **opts)
+					SH.logger.add(log_fallback, "Trying fallback for packages: #{new_queries.keys.join(', ')}")
+					fallback_got=self.resolve(*new_queries.values, provides: provides, ext_query: ext_query, fallback: false, log_missing: :quiet, **opts)
 					got.merge!(fallback_got)
-					SH.logger.warn "Missing packages: #{missed.map {|m| r=m; r<<" [fallback: #{fallback}]" if (fallback=fallback_got[new_queries[m]]); r}.join(', ')}"
+					SH.logger.add(log_missing, "Missing packages: #{missed.map {|m| r=m; r<<" [fallback: #{fallback}]" if (fallback=fallback_got[new_queries[m]]); r}.join(', ')}") unless missed.empty?
 				end
 			else
-				SH.logger.warn "Missing packages: #{missed.join(', ')}" if !missed.empty? and ext_query != false #ext_query=false is a hack to silence this message
+				SH.logger.add(log_missing, "Missing packages: #{missed.join(', ')}") unless missed.empty?
 			end
 			got
 		end
@@ -438,14 +438,15 @@ module Archlinux
 			method(:as_ext_query)
 		end
 
-		def as_ext_query(*queries, provides: false)
+		def as_ext_query(*queries, provides: false, full_pkgs: false)
 			r=self.resolve(*queries, provides: provides, fallback: false)
-			l=slice(r.values)
+			l= full_pkgs ? @l : slice(r.values)
 			return r, l
 		end
 
 	end
 
+	# cache aur queries
 	class AurCache < PackageList
 		def self.official
 			@official||=%w(core extra community).map {|repo| Repo.new(repo).list(mode: :pacman)}.flatten.compact
@@ -461,7 +462,7 @@ module Archlinux
 			self.class.official
 		end
 
-		def ext_query(*queries, provides: false)
+		def ext_query(*queries, **_opts)
 			pkgs=queries.map {|p| Query.strip(p)}
 			# in a query like foo>1000, even if foo exist and was queried,
 			# the query fails so it gets called in ext_query
@@ -477,6 +478,20 @@ module Archlinux
 			end
 			r=l.resolve(*queries, ext_query: false, fallback: false)
 			return r, l
+		end
+	end
+
+	# cache MakepkgList
+	class MakepkgCache < PackageList
+		def initialize(*args)
+			super
+			@ext_query=method(:ext_query)
+		end
+
+		def ext_query(*queries, **opts)
+			pkgs=queries.map {|p| Query.strip(p)}
+			l=MakepkgList.new(pkgs).select {|m| m.exist?}
+			MakepkgList.new(l).packages.as_ext_query(*queries, full_packages: true, **opts)
 		end
 	end
 
