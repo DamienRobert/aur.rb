@@ -478,36 +478,44 @@ module Archlinux
 
 	# cache MakepkgList
 	class MakepkgCache < PackageList
-		def initialize(*args)
-			super
+		def initialize(*args, get_mode: :cache, **opts)
+			super(*args, **opts)
+			@select_existing=get_mode.delete(:existing)
+			@get_mode=get_mode
 			@ext_query=method(:ext_query)
 		end
 
 		def ext_query(*queries, **opts)
 			pkgs=queries.map {|p| Query.strip(p)}
-			l=MakepkgList.new(pkgs).values.select {|m| m.exist?}
-			MakepkgList.new(l).packages.as_ext_query(*queries, full_pkgs: true, **opts)
+			pkgs=MakepkgList.new(pkgs).values.select {|m| m.exist?} if @select_existing
+			MakepkgList.new(pkgs).packages(get: @get_mode).as_ext_query(*queries, full_pkgs: true, **opts)
 		end
 	end
 
 	# download PKGBUILD dynamically
-	class VirtualMakepkgCache < PackageList
+	class AurMakepkgCache < PackageList
 		def initialize(*args)
 			super
+			@aur_cache ||= AurCache.new([])
+			@makepkg_cache ||= MakepkgCache.new([], get_mode: {update: true, clone: true, pkgver: true, view: false})
 			@ext_query=method(:ext_query)
 		end
 
 		def ext_query(*queries, **opts)
-			pkgs=queries.map {|p| Query.strip(p)}
-			l=MakepkgList.new(pkgs).packages(get: true)
-			l.as_ext_query(*queries, full_pkgs: true, **opts)
+			devel=queries.select do |query|
+				Query.strip(query)=~/(-git|-hg|-svn)$/
+			end
+			aur=queries-devel
+			r1, l1=@makepkg_cache.as_ext_query(*devel, **opts)
+			r2, l2=@aur_cache.as_ext_query(*aur, **opts)
+			return r1.merge(r2), l1.merge(l2)
 		end
 	end
 
 	class AurPackageList < PackageList
-		def self.cache
-			@cache ||= AurCache.new([])
-		end
+		# def self.cache
+		# 	@cache ||= AurCache.new([])
+		# end
 
 		def self.official
 			@official||=%w(core extra community).map {|repo| Repo.new(repo).list(mode: :pacman)}.flatten.compact
@@ -515,7 +523,8 @@ module Archlinux
 
 		def initialize(*args)
 			super
-			@install_list=self.class.cache
+			# @install_list=self.class.cache
+			@install_list=AurMakepkgCache.new
 			@children_mode=%i(depends make_depends check_depends)
 			@install_method=method(:install_method)
 			@query_ignore=official

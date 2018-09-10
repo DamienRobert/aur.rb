@@ -146,6 +146,17 @@ module Archlinux
 			PackageFiles.new(*files).packages
 		end
 
+		def sign_files(sign=true, resign: false)
+			files.map do |pkg|
+				if pkg.file?
+					next if !resign and Pathname.new("#{pkg}.sig").file?
+					SH.sh("gpg #{sign.is_a?(String) ? "-u #{sign}" : ""} --detach-sign --no-armor #{pkg.shellescape}")
+					pkg
+				end
+			end.compact
+		end
+
+
 		def check
 			packages.same?(package_files)
 		end

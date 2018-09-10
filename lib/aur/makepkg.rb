@@ -37,8 +37,12 @@ module Archlinux
 			end
 		end
 
-		def info(get: true)
-			self.get(mode: get) if !exist? and get
+		def info(get: false)
+			if get
+				get_options={}
+				get_options=get if get.is_a?(Hash)
+				self.get(**get_options)
+			end
 			stdin=call("--printsrcinfo", chomp: :lines)
 			mode=nil; r={}; current={}; pkgbase=nil; pkgname=nil
 			stdin.each do |l|
@@ -85,15 +89,12 @@ module Archlinux
 			@config[:aur_url]+@base.to_s+".git"
 		end
 
-		def get(logdir: nil, view: false, mode: :update_or_clone)
-			mode=:update_or_clone if mode == true
-			mode=mode.to_s.split('_') unless mode.is_a?(Array)
-			#SH.sh("vcs clone_or_update --diff #{url.shellescape} #{@dir.shellescape}")
+		def get(logdir: nil, view: false, update: true, clone: true, pkgver: false)
 			if logdir
 				logdir=DR::Pathname.new(logdir)
 				logdir.mkpath
 			end
-			if @dir.exist? and mode.include?("update")
+			if @dir.exist? and update
 				# TODO: what if @dir exist but is not a git directory?
 				@dir.chdir do
 					unless @config.git_update
@@ -107,7 +108,7 @@ module Archlinux
 						end
 					end
 				end
-			elsif !@dir.exist? and mode.include?("clone")
+			elsif !@dir.exist? and clone
 				unless @config.git_clone(url, @dir)
 					SH.logger.error("Error in cloning #{url} to #{@dir}")
 				end
@@ -115,7 +116,7 @@ module Archlinux
 					(logdir+"!#{@dir.basename}").on_ln_s(@dir.realpath)
 				end
 			end
-			if pkgver? and mode.include("pkgver")
+			if pkgver? and pkgver
 				get_source
 			end
 			if view
@@ -208,7 +209,7 @@ module Archlinux
 			call("--packagelist", chomp: :lines, err: "/dev/null", **opts).map {|f| Pathname.new(f)}
 		end
 
-		def sign(sign, **opts)
+		def sign(sign=@config.sign(:makepkg)||true, **opts)
 			list(**opts).each do |pkg|
 				if pkg.file?
 					if (sig=Pathname.new("#{pkg}.sig")).file?
@@ -231,7 +232,7 @@ module Archlinux
 			@config=config
 			@cache=Pathname.new(cache)
 			@l={}
-			l.each do |m| 
+			l.each do |m|
 				unless m.is_a?(Makepkg)
 					m=Pathname.new(m)
 					m = @cache+m if m.relative?
@@ -248,10 +249,10 @@ module Archlinux
 			end
 		end
 
-		def get(*args, view: true)
+		def get(*args, view: true, **opts)
 			Dir.mktmpdir("aur_view") do |d|
 				@l.values.each do |l|
-					l.get(*args, logdir: d)
+					l.get(*args, logdir: d, view: false, **opts)
 				end
 				if view
 					return @config.view(d)

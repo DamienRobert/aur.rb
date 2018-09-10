@@ -161,6 +161,16 @@ module Archlinux
 			@packages ||= PackageList.new(self.infos)
 		end
 
+		def sign(sign=true, resign: false)
+			@files.map do |pkg|
+				if pkg.file?
+					next if !resign and Pathname.new("#{pkg}.sig").file?
+					SH.sh("gpg #{sign.is_a?(String) ? "-u #{sign}" : ""} --detach-sign --no-armor #{pkg.shellescape}")
+					pkg
+				end
+			end.compact
+		end
+
 		def self.from_dir(dir)
 			dir=Pathname.new(dir)
 			self.new(*dir.glob('*.pkg.*').map {|g| next if g.to_s.end_with?('~') or g.to_s.end_with?('.sig'); f=dir+g; next unless f.readable?; f}.compact)
