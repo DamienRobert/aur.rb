@@ -33,7 +33,8 @@ module Archlinux
 			end
 		end
 
-		def info
+		def info(get: true)
+			self.get if !exist? and get
 			stdin=call("--printsrcinfo", chomp: :lines)
 			mode=nil; r={}; current={}; pkgbase=nil; pkgname=nil
 			stdin.each do |l|
@@ -58,10 +59,10 @@ module Archlinux
 			r
 		end
 
-		def packages(refresh=false)
+		def packages(refresh=false, get: false)
 			@packages=nil if refresh
 			unless @packages
-				r=info
+				r=info(get: true)
 				pkgs=r.delete(:pkgs)
 				r[:pkgbase]
 				base=Package.new(r)
@@ -216,10 +217,10 @@ module Archlinux
 			end
 		end
 
-		def packages(refresh=false)
+		def packages(refresh=false, get: false)
 			@packages = nil if refresh
 			@packages ||= @l.values.reduce do |list, makepkg|
-				list.merge(makepkg.packages)
+				list.merge(makepkg.packages(get: get))
 			end
 		end
 

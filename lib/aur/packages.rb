@@ -495,6 +495,20 @@ module Archlinux
 		end
 	end
 
+	# download PKGBUILD dynamically
+	class VirtualMakepkgCache < PackageList
+		def initialize(*args)
+			super
+			@ext_query=method(:ext_query)
+		end
+
+		def ext_query(*queries, **opts)
+			pkgs=queries.map {|p| Query.strip(p)}
+			l=MakepkgList.new(pkgs).packages(get: true)
+			l.as_ext_query(*queries, full_packages: true, **opts)
+		end
+	end
+
 	class AurPackageList < PackageList
 		def self.cache
 			@cache ||= AurCache.new([])
