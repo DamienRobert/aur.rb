@@ -13,12 +13,14 @@ module Archlinux
 
 		def list(mode: :pacsift)
 			command= case mode
-			when :pacman
+			when :pacman, :name
 				"pacman -Slq #{@repo.shellescape}" #returns pkg
-			when :pacsift
+			when :pacsift, :repo_name
+				#this mode is prefered, so that if the same pkg is in different
+				#repo, than pacman_info returns the correct info
 				"pacsift --exact --repo=#{@repo.shellescape} <&-" #returns repo/pkg
-			when :paclist
-				"paclist #{@repo.shellescape}" #returns pkg version
+			when :paclist, :name_version
+				"paclist #{@repo.shellescape}" #returns 'pkg version'
 			end
 			SH.run_simple(command, chomp: :lines) {return nil}
 		end
@@ -28,7 +30,7 @@ module Archlinux
 			@packages ||= @config.to_packages(self.class.info(*list))
 		end
 
-		def self.pacman_info(*pkgs, local: false) #local=true refers to the local db info
+		def self.pacman_info(*pkgs, local: false) #local=true refers to the local db info. Note that pacman does not understand local/pkg but pacinfo does
 			list=[]
 			to_list=lambda do |s|
 				return [] if s=="None"

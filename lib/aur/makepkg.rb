@@ -261,6 +261,8 @@ module Archlinux
 					tools=@config.makepkg_config
 					tools.sync_db(db.repo_name)
 				end
+			else
+				success
 			end
 		end
 

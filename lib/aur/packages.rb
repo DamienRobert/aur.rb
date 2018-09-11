@@ -394,16 +394,17 @@ module Archlinux
 		# this take a list of packages which can be updates of ours
 		def check_update(updates=@install_list, ignore: @ignore)
 			return [] if updates.nil?
-			new_pkgs=updates.slice(*packages)
+			new_pkgs=updates.slice(*packages) #ignore 'install' packages
 			check_updates(new_pkgs, ignore: ignore)
 		end
 
-		def update(**opts)
-			install(update: true, **opts)
+		def update?(**opts)
+			install?(update: true, **opts)
 		end
 
-		# take a list of packages to install
-		def install(*packages, update: false, install_list: @install_list, verbose: true, obsolete: true, ignore: @ignore)
+		# take a list of packages to install, return the new or updated
+		# packages to install with their dependencies
+		def install?(*packages, update: false, install_list: @install_list, verbose: true, obsolete: true, ignore: @ignore)
 			packages+=self.names if update
 			if install_list
 				ignore -= packages.map {|p| Query.strip(p)}
@@ -423,18 +424,20 @@ module Archlinux
 			end
 		end
 
-		def do_update(**opts, &b)
-			do_install(update: true, **opts, &b)
+		def update(**opts, &b)
+			install(update: true, **opts, &b)
 		end
 
-		def do_install(*args, callback: nil, **opts, &b)
+		def install(*args, callback: nil, **opts, &b)
 			install_opts={}
 			%i(update ext_query verbose obsolete).each do |key|
 				opts.key?(key) && install_opts[key]=opts.delete(key)
 			end
-			l=install(*args, **install_opts, &callback) #return false in the callback to prevent install
+			l=install?(*args, **install_opts, &callback) #return false in the callback to prevent install
 			if @install_method
 				@install_method.call(l, **opts, &b) unless !l or l.empty?
+			else
+				l
 			end
 		end
 

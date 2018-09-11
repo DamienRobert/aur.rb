@@ -242,9 +242,9 @@ module Archlinux
 			end
 			tmp_pacman(new_conf) do |pacman, file|
 				if block_given?
-					yield(pacman, file)
+					return yield(pacman, file)
 				else
-					pacman['-Syu', sudo: @config.sudo]
+					return pacman['-Syu', sudo: @config.sudo]
 				end
 			end
 		end
