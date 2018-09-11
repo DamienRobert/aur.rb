@@ -22,33 +22,53 @@ module Archlinux
 			url.relative ? @config[:aur_url]+@url.to_s+".git" : url
 		end
 
+		def call(*args,**opts,&b)
+			opts[:method]||=:sh
+			@dir.chdir do
+				@config.launch(:git, *args, **opts, &b)
+			end
+		end
+
 		# callbacks called by makepkg
 		def done_view
+			call('branch', '-f', 'aur_view', 'HEAD')
 		end
 		def done_build
+			call('branch', '-f', 'aur_build', 'HEAD')
 		end
 
-		def update
-			@dir.chdir do
-				unless @config.git_update
-					SH.logger.error("Error in updating #{@dir}")
-				end
-				if @logdir
-					SH::VirtualFile.new("orderfile", "PKGBUILD").create(true) do |tmp|
-						patch=SH.run_simple("git diff -O#{tmp} HEAD@{1}")
-						(logdir+"#{@dir.basename}.patch").write(patch) unless patch.empty?
-						(logdir+"#{@dir.basename}").on_ln_s(@dir.realpath, rm: :symlink)
-					end
+		def write_patch(logdir)
+			if call("rev-parse", "aur_view", method: :run_simple)
+				SH::VirtualFile.new("orderfile", "PKGBUILD").create(true) do |tmp|
+					patch=call("diff", "-O#{tmp}", "aur_view", "HEAD", method: :run_simple)
+					(logdir+"#{@dir.basename}.patch").write(patch) unless patch.empty?
+					(logdir+"#{@dir.basename}").on_ln_s(@dir.realpath, rm: :symlink)
 				end
 			end
 		end
 
-		def clone(url)
-			unless @config.git_clone(@url, @dir)
+		def do_update
+			suc, _r=call("pull")
+			suc
+		end
+		def do_clone(url)
+			suc, _r=call("clone", url, @dir)
+			suc
+		end
+
+		def update(logdir: nil)
+			if do_update
+				write_patch(logdir) if logdir
+			else
+				SH.logger.error("Error in updating #{@dir}")
+			end
+		end
+
+		def clone(url=@url, logdir: nil)
+			if do_clone
+				(logdir+"!#{@dir.basename}").on_ln_s(@dir.realpath) if logdir
+			else
 				SH.logger.error("Error in cloning #{url} to #{@dir}")
-			end
-			if logdir
-				(logdir+"!#{@dir.basename}").on_ln_s(@dir.realpath)
 			end
 		end
 	end
@@ -65,6 +85,10 @@ module Archlinux
 			@asdeps=asdeps
 			db=@config.db
 			@env['PKGDEST']=db.dir.to_s if db
+		end
+
+		def get_pkg
+			@get_pkg=@config[:default_get_class].new(@dir, url: name, config: @config)
 		end
 
 		def name
@@ -154,12 +178,12 @@ module Archlinux
 				logdir=DR::Pathname.new(logdir)
 				logdir.mkpath
 			end
-			get_pkg=@config[:default_get_class].new(@dir, url: name, logdir: logdir, config: @config)
+			get_pkg=self.get_pkg
 
 			if @dir.exist? and update
-				get_pkg.update
+				get_pkg.update(logdir: logdir)
 			elsif !@dir.exist? and clone
-				get_pkg.clone
+				get_pkg.clone(logdir: logdir)
 			end
 			if pkgver and pkgver?
 				get_source
@@ -189,6 +213,7 @@ module Archlinux
 			default_opts << "--asdeps" if asdeps
 
 			success, _r=call(*args, method: :sh, default_opts: default_opts, env: @env, **opts)
+			get_pkg.done_build if success
 			success
 		end
 
@@ -284,7 +309,13 @@ module Archlinux
 					l.get(*args, logdir: d, view: false, **opts)
 				end
 				if view
-					return @config.view(d)
+					r=@config.view(d)
+					if r
+						@l.values.each do |l|
+							l.get_pkg.done_view
+						end
+					end
+					r
 				else
 					return true
 				end

@@ -57,10 +57,6 @@ module Archlinux
 					makechrootpkg: {default_opts: ["-cu"]},
 				},
 				view: "vifm -c view! -c tree -c 0", #can also be a Proc
-				git: {
-					update: "git pull", #these too
-					clone: "git clone",
-				},
 				sudo_loop: {
 					command: "sudo -v",
 					interval: 30,
@@ -76,16 +72,6 @@ module Archlinux
 		def view(dir)
 			view=@opts[:view]
 			SH.sh_or_proc(view, dir)
-		end
-
-		def git_update
-			method=@opts[:git][:update]
-			SH.sh_or_proc(method)
-		end
-
-		def git_clone(url, dir)
-			method=@opts[:git][:clone]
-			SH.sh_or_proc(method, url, dir)
 		end
 
 		def cachedir
