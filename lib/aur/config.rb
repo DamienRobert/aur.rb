@@ -35,6 +35,7 @@ module Archlinux
 					root: "/var/lib/aurbuild/x86_64", #chroot root
 					active: false, #do we use the chroot?
 					update: 'pacman -Syu --noconfirm', #how to update an existing chroot
+					packages: ['base-devel'], #the packages that are installed in the chroto
 				},
 				packages: AurPackageList,
 				sign: true, #can be made more atomic, cf the sign method

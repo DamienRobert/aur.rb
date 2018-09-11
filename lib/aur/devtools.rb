@@ -136,28 +136,26 @@ module Archlinux
 			Pacman.create(@opts[:pacman_conf])
 		end
 
-		def pacman(*args, default_opts: [], **opts)
+		def pacman(*args, default_opts: [], **opts, &b)
 			files do |key, file|
 				default_opts += ["--config", file] if key==:pacman_conf
 			end
-			@config.launch(:pacman, *args, default_opts: default_opts, **opts) do |*args|
-				SH.sh(*args)
-			end
+			opts[:method]||=:sh
+			@config.launch(:pacman, *args, default_opts: default_opts, **opts, &b)
 		end
 
-		def makepkg(*args, default_opts: [], **opts)
+		def makepkg(*args, run: :sh, default_opts: [], **opts, &b)
 			files do |key, file|
 				# trick to pass options to pacman
 				args << "PACMAN_OPTS+=--config=#{file.shellescape}"
 				default_opts += ["--config", file] if key==:makepkg_conf
 			end
-			@config.launch(:makepkg, *args, default_opts: default_opts, **opts) do |*args|
-				SH.sh(*args)
-			end
+			opts[:method]||=:sh
+			@config.launch(:makepkg, *args, default_opts: default_opts, **opts, &b)
 		end
 
 
-		def nspawn(*args, root: @opts.dig(:chroot,:root)+'root', default_opts: [], **opts)
+		def nspawn(*args, root: @opts.dig(:chroot,:root)+'root', default_opts: [], **opts, &b)
 			files do |key, file|
 				default_opts += ["-C", file] if key==:pacman_conf
 				default_opts += ["-M", file] if key==:makepkg_conf
@@ -174,20 +172,19 @@ module Archlinux
 			end
 			args.unshift root
 
-			@config.launch(:'arch-nspawn', *args, default_opts: default_opts, **opts) do |*args|
-				SH.sh(*args)
-			end
+			opts[:method]||=:sh
+			@config.launch(:'arch-nspawn', *args, default_opts: default_opts, **opts, &b)
 		end
 
 		# this takes the same options as nspawn
-		def mkarchroot(*args, nspawn: @opts.dig(:chroot, :update), default_opts: [], **opts)
+		def mkarchroot(*args, nspawn: @opts.dig(:chroot, :update), default_opts: [], root: @opts.dig(:chroot, :root), **opts, &b)
 			files do |key, file|
 				default_opts += ["-C", file] if key==:pacman_conf
 				default_opts += ["-M", file] if key==:makepkg_conf
 			end
-			chroot=@opts.dig(:chroot,:root)
-			chroot.sudo_mkpath unless chroot.directory?
-			args.unshift(chroot+'root')
+			root.sudo_mkpath unless chroot.directory?
+			root=root+'root'
+			opts[:method]||=:sh
 			if (chroot+'root'+'.arch-chroot').file?
 				# Note that if nspawn is not called (and the chroot does not
 				# exist), then the passed pacman.conf will not be replace the one
@@ -195,17 +192,16 @@ module Archlinux
 				# transmit the -C/-M options. So even if we don't want to update,
 				# we should call a dummy bin like 'true'
 				if nspawn
+					return nspawn.call(root) if nspawn.is_a?(Proc)
 					nspawn=nspawn.shellsplit if nspawn.is_a?(String)
-					self.nspawn(*nspawn, **opts)
+					self.nspawn(*nspawn, root: root, **opts, &b)
 				end
 			else
-				@config.launch(:mkarchroot, *args, default_opts: default_opts, escape: true, **opts) do |*args|
-					SH.sh(*args)
-				end
+				@config.launch(:mkarchroot, root, *args, default_opts: default_opts, escape: true, **opts,&b)
 			end
 		end
 
-		def makechrootpkg(*args, default_opts: [], **opts)
+		def makechrootpkg(*args, default_opts: [], **opts, &b)
 			default_opts+=['-r', @opts.dig(:chroot, :root)]
 			if (binds_ro=@opts[:bind_ro])
 				binds_ro.each do |b|
@@ -217,19 +213,17 @@ module Archlinux
 					default_opts += ["-d", b]
 				end
 			end
+			opts[:method]||=:sh
 
 			#makechrootpkg calls itself with sudo --preserve-env=SOURCE_DATE_EPOCH,GNUPGHOME so it does not keep PKGDEST..., work around this by providing our own sudo
-			@config.launch(:makechrootpkg, *args, default_opts: default_opts, sudo: @config.sudo('sudo --preserve-env=GNUPGHOME,PKGDEST,SOURCE_DATE_EPOCH'), **opts) do |*args|
-				SH.sh(*args)
-			end
+			@config.launch(:makechrootpkg, *args, default_opts: default_opts, sudo: @config.sudo('sudo --preserve-env=GNUPGHOME,PKGDEST,SOURCE_DATE_EPOCH'), **opts, &b)
 		end
 
 		def tmp_pacman(conf, **opts)
 			PacmanConf.create(conf).tempfile.create(true) do |file|
-				pacman=lambda do |*args, **pac_opts|
-					@config.launch(:pacman, *args, default_opts: ["--config", file], **opts.merge(pac_opts)) do |*args|
-						SH.sh(*args)
-					end
+				pacman=lambda do |*args, **pac_opts, &b|
+					pac_opts[:method]||=:sh
+					@config.launch(:pacman, *args, default_opts: ["--config", file], **opts.merge(pac_opts), &b)
 				end
 				yield pacman, file
 			end
@@ -246,11 +240,11 @@ module Archlinux
 					SH.logger.warn "sync_db: unknown repo #{name}"
 				end
 			end
-			tmp_pacman(new_conf) do |pacman|
+			tmp_pacman(new_conf) do |pacman, file|
 				if block_given?
-					yield(pacman)
+					yield(pacman, file)
 				else
-					pacman['-Syu', sudo: @config.sudo(true)]
+					pacman['-Syu', sudo: @config.sudo]
 				end
 			end
 		end

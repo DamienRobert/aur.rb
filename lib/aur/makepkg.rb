@@ -29,11 +29,25 @@ module Archlinux
 			pkgbuild.exist?
 		end
 
-		def call(*args, run: :run_simple, **opts)
+		def raw_call(*args, method: :run_simple, **opts)
 			@config.launch(:makepkg, *args, **opts) do |*args, **opts|
 				@dir.chdir do
-					SH.public_send(run, @env, *args, **opts)
+					SH.public_send(method, @env, *args, **opts)
 				end
+			end
+		end
+
+		# raw call to makepkg
+		def makepkg(*args, **opts)
+			raw_call(*args, method: :sh, **opts)
+		end
+
+		def call(*args, **opts)
+			tools=@config.makepkg_config #this set up pacman and makepkg config files
+			env=opts.delete(:env) || {}
+			opts[:method]||=:run_simple
+			@dir.chdir do
+				tools.makepkg(*args, env: @env.merge(env), **opts)
 			end
 		end
 
@@ -126,21 +140,12 @@ module Archlinux
 			end
 		end
 
-		# raw call to makepkg
-		def makepkg(*args, **opts)
-			call(*args, run: :sh, **opts)
-		end
-
 		def pkgver?
 			exist? and pkgbuild.read.match(/^\s*pkgver()/)
 		end
 
 		def get_source
-			tools=@config.makepkg_config #this set up pacman and makepkg config files
-			success=false
-			@dir.chdir do
-				success=tools.makepkg('--nobuild')
-			end
+			success, _r=call('--nobuild', method: :sh)
 			success
 		end
 
@@ -150,16 +155,13 @@ module Archlinux
 			default_opts << "--force" if force
 			default_opts << "--asdeps" if asdeps
 
-			tools=@config.makepkg_config #this set up pacman and makepkg config files
-			success=false
-			@dir.chdir do
-				success=tools.makepkg(*args, default_opts: default_opts, env: @env, **opts)
-			end
+			success, _r=call(*args, method: :sh, default_opts: default_opts, env: @env, **opts)
 			success
 		end
 
 		def mkarchroot
-			@config.devtools.mkarchroot("base-devel")
+			args=@config.dig(:chroot, :packages) || ["base-devel"]
+			@config.devtools.mkarchroot(*args)
 		end
 
 		def makechroot(*args, sign: @config.use_sign(:package), force: false, **opts)
