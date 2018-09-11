@@ -207,7 +207,7 @@ module Archlinux
 				end
 				args=['--detach-sign', '--no-armor']
 				args+=['-u', sign_name] if sign_name.is_a?(String)
-				@config.launch(:gpg, *args, file) do |*args|
+				launch(:gpg, *args, file) do |*args|
 					suc, _r=SH.sh(*args)
 					suc ? file : nil
 				end

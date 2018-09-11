@@ -38,11 +38,11 @@ module Archlinux
 		end
 
 		def write_patch(logdir)
-			if call("rev-parse", "--verify", "aur_view", method: :run_simple, quiet: true)
+			(logdir+"#{@dir.basename}").on_ln_s(@dir.realpath, rm: :symlink)
+			if call("rev-parse", "--verify", "aur_view", method: :run_success, quiet: true)
 				SH::VirtualFile.new("orderfile", "PKGBUILD").create(true) do |tmp|
 					patch=call("diff", "-O#{tmp}", "aur_view", "HEAD", method: :run_simple)
 					(logdir+"#{@dir.basename}.patch").write(patch) unless patch.empty?
-					(logdir+"#{@dir.basename}").on_ln_s(@dir.realpath, rm: :symlink)
 				end
 			end
 		end
@@ -327,7 +327,7 @@ module Archlinux
 					r=true
 				end
 				if r and pkgver
-					@l.values.all? do |l|
+					@l.values.map do |l| #all?
 						l.get_source if l.pkgver?
 					end
 				else
@@ -364,7 +364,7 @@ module Archlinux
 
 		def build(*args, chroot: @config.dig(:chroot, :active), **opts)
 			mkarchroot if chroot
-			@l.values.all? do |l|
+			@l.values.map do |l| #all?
 				l.build(*args, chroot: chroot, **opts)
 			end
 		end

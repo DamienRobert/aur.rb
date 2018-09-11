@@ -61,7 +61,7 @@ module Archlinux
 
 		def non_official_repos
 			repos=@pacman_conf[:repos]
-			repos.slice(*(repos.keys - %i(core extra community multilib testing community-testing multilib-testing)))
+			repos.slice(*(repos.keys - %w(core extra community multilib testing community-testing multilib-testing)))
 		end
 
 		def to_s
