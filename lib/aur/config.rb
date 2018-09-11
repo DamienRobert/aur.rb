@@ -183,21 +183,14 @@ module Archlinux
 			self.db=nil
 		end
 
-		def run_sudo_loop(command: dig(:sudo_loop,:command), interval: dig(:sudo_loop, :interval), init_command: dig(:sudo_loop, :init_command) || command)
-			if @sudo_loop_thread.nil? or !@sudo_loop_thread.alive?
-				SH.sh_or_proc(init_command, log: false)
-				@sudo_loop_thread = Thread.new do
-					loop do
-						SH.sh_or_proc(command, log: false)
-						sleep(interval)
-					end
-				end
-				@sudo_loop_thread.run
+		def sudo(arg=true)
+			sudo=arg
+			if dig(:sudo_loop, :active)
+				opts=dig(:sudo_loop).clone
+				opts.delete(:active)
+				sudo.extend(SH::SudoLoop.config(**opts))
 			end
-		end
-
-		def stop_sudo_loop
-			@sudo_loop_thread&.kill
+			sudo
 		end
 
 		def to_packages(l=[])

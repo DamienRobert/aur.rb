@@ -494,7 +494,7 @@ module Archlinux
 		end
 	end
 
-	# cache MakepkgList
+	# cache MakepkgList and download PKGBUILD dynamically
 	class MakepkgCache < PackageList
 		def initialize(*args, get_mode: :cache, **opts)
 			super(*args, **opts)
@@ -510,12 +510,13 @@ module Archlinux
 		end
 	end
 
-	# download PKGBUILD dynamically
+	# combine Aur and Makepkg caches
 	class AurMakepkgCache < PackageList
-		def initialize(*args)
+		attr_accessor :aur_cache, :makepkg_cache
+		def initialize(*args, **opts)
 			super
-			@aur_cache ||= AurCache.new([])
-			@makepkg_cache ||= MakepkgCache.new([], get_mode: {update: true, clone: true, pkgver: true, view: false})
+			@aur_cache = AurCache.new(**opts)
+			@makepkg_cache ||= MakepkgCache.new(get_mode: {update: true, clone: true, pkgver: true, view: false}, **opts)
 			@ext_query=method(:ext_query)
 		end
 
@@ -530,7 +531,8 @@ module Archlinux
 			end
 			aur=queries-devel
 			r1, l1=@makepkg_cache.as_ext_query(*devel, **opts)
-			r2, l2=@aur_cache.as_ext_query(*aur, **opts)
+			missing=devel-r1.keys
+			r2, l2=@aur_cache.as_ext_query(*(missing+aur), **opts)
 			return r1.merge(r2), l1.merge(l2)
 		end
 	end
@@ -544,10 +546,10 @@ module Archlinux
 			@official||=%w(core extra community).map {|repo| Repo.new(repo).list(mode: :pacman)}.flatten.compact
 		end
 
-		def initialize(*args)
+		def initialize(*args, **opts)
 			super
 			# @install_list=self.class.cache
-			@install_list=AurMakepkgCache.new
+			@install_list=AurMakepkgCache.new(**opts)
 			@children_mode=%i(depends make_depends check_depends)
 			@install_method=method(:install_method)
 			@query_ignore=official

@@ -219,7 +219,7 @@ module Archlinux
 			end
 
 			#makechrootpkg calls itself with sudo --preserve-env=SOURCE_DATE_EPOCH,GNUPGHOME so it does not keep PKGDEST..., work around this by providing our own sudo
-			@config.launch(:makechrootpkg, *args, default_opts: default_opts, sudo: 'sudo --preserve-env=GNUPGHOME,PKGDEST,SOURCE_DATE_EPOCH', **opts) do |*args|
+			@config.launch(:makechrootpkg, *args, default_opts: default_opts, sudo: @config.sudo('sudo --preserve-env=GNUPGHOME,PKGDEST,SOURCE_DATE_EPOCH'), **opts) do |*args|
 				SH.sh(*args)
 			end
 		end
@@ -250,7 +250,7 @@ module Archlinux
 				if block_given?
 					yield(pacman)
 				else
-					pacman['-Syu', sudo: true]
+					pacman['-Syu', sudo: @config.sudo(true)]
 				end
 			end
 		end
