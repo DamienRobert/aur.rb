@@ -1,15 +1,65 @@
 require 'aur/config'
 require 'aur/devtools'
 require 'aur/packages'
+require 'uri'
 
 module Archlinux
+	# this is a get class; it should respond to update and clone
+	class Git
+		extend CreateHelper
+		attr_accessor :dir, :config, :logdir
+		attr_writer :url
+
+		def initialize(dir, url: nil, logdir: nil, config: Archlinux.config)
+			@dir=Pathname.new(dir)
+			@url=url
+			@config=config
+			@logdir=logdir
+		end
+
+		def url
+			url=URI.parse(@url)
+			url.relative ? @config[:aur_url]+@url.to_s+".git" : url
+		end
+
+		# callbacks called by makepkg
+		def done_view
+		end
+		def done_build
+		end
+
+		def update
+			@dir.chdir do
+				unless @config.git_update
+					SH.logger.error("Error in updating #{@dir}")
+				end
+				if @logdir
+					SH::VirtualFile.new("orderfile", "PKGBUILD").create(true) do |tmp|
+						patch=SH.run_simple("git diff -O#{tmp} HEAD@{1}")
+						(logdir+"#{@dir.basename}.patch").write(patch) unless patch.empty?
+						(logdir+"#{@dir.basename}").on_ln_s(@dir.realpath, rm: :symlink)
+					end
+				end
+			end
+		end
+
+		def clone(url)
+			unless @config.git_clone(@url, @dir)
+				SH.logger.error("Error in cloning #{url} to #{@dir}")
+			end
+			if logdir
+				(logdir+"!#{@dir.basename}").on_ln_s(@dir.realpath)
+			end
+		end
+	end
+
 	class Makepkg
 		extend CreateHelper
 		attr_accessor :dir, :base, :env, :config, :asdeps
 
 		def initialize(dir, config: Archlinux.config, env: {}, asdeps: false)
 			@dir=Pathname.new(dir)
-			@base=@dir.basename
+			@base=@dir.basename #the corresponding pkgbase
 			@config=config
 			@env=env
 			@asdeps=asdeps
@@ -99,44 +149,27 @@ module Archlinux
 			@packages
 		end
 
-		def url
-			@config[:aur_url]+@base.to_s+".git"
-		end
-
 		def get(logdir: nil, view: false, update: true, clone: true, pkgver: false)
 			if logdir
 				logdir=DR::Pathname.new(logdir)
 				logdir.mkpath
 			end
+			get_pkg=@config[:default_get_class].new(@dir, url: name, logdir: logdir, config: @config)
+
 			if @dir.exist? and update
-				# TODO: what if @dir exist but is not a git directory?
-				@dir.chdir do
-					unless @config.git_update
-						SH.logger.error("Error in updating #{@dir}")
-					end
-					if logdir
-						SH::VirtualFile.new("orderfile", "PKGBUILD").create(true) do |tmp|
-							patch=SH.run_simple("git diff -O#{tmp} HEAD@{1}")
-							(logdir+"#{@dir.basename}.patch").write(patch) unless patch.empty?
-							(logdir+"#{@dir.basename}").on_ln_s(@dir.realpath, rm: :symlink)
-						end
-					end
-				end
+				get_pkg.update
 			elsif !@dir.exist? and clone
-				unless @config.git_clone(url, @dir)
-					SH.logger.error("Error in cloning #{url} to #{@dir}")
-				end
-				if logdir
-					(logdir+"!#{@dir.basename}").on_ln_s(@dir.realpath)
-				end
+				get_pkg.clone
 			end
-			if pkgver? and pkgver
+			if pkgver and pkgver?
 				get_source
 			end
 			if view
-				return @config.view(@dir)
+				r=@config.view(@dir)
+				get_pkg.done_view if r
+				r
 			else
-				return true
+				true
 			end
 		end
 

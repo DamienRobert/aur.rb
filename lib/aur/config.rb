@@ -1,5 +1,6 @@
 require 'aur/helpers'
 require 'aur/packages'
+require 'aur/makepkg'
 
 module Archlinux
 
@@ -37,7 +38,8 @@ module Archlinux
 					update: 'pacman -Syu --noconfirm', #how to update an existing chroot
 					packages: ['base-devel'], #the packages that are installed in the chroto
 				},
-				packages: AurPackageList,
+				default_packages_class: AurPackageList,
+				default_get_class: Git, #we use git to fetch PKGBUILD from aur
 				sign: true, #can be made more atomic, cf the sign method
 				config_files: {
 					default: {
@@ -54,9 +56,9 @@ module Archlinux
 					makepkg: {default_opts: ["-crs", "--needed"]},
 					makechrootpkg: {default_opts: ["-cu"]},
 				},
-				view: "vifm -c view! -c tree -c 0",
+				view: "vifm -c view! -c tree -c 0", #can also be a Proc
 				git: {
-					update: "git pull",
+					update: "git pull", #these too
 					clone: "git clone",
 				},
 				sudo_loop: {
@@ -185,7 +187,7 @@ module Archlinux
 		end
 
 		def to_packages(l=[])
-			klass=@opts[:packages]
+			klass=@opts[:default_packages_class]
 			klass=Archlinux.const_get(klass) if klass.is_a?(Symbol)
 			klass.new(l)
 		end
