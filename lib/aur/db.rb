@@ -121,7 +121,7 @@ module Archlinux
 			files
 		end
 
-		def add(*files, cmd: :'repo-add', default_opts:[], sign: @config&.use_sign(:db), **opts)
+		def add(*files, cmd: :'repo-add', default_opts:[], sign: @config&.use_sign?(:db), **opts)
 			default_opts+=['-s', '-v'] if sign
 			default_opts+=['--key', sign] if sign.is_a?(String)
 			dir.chdir do
@@ -130,7 +130,7 @@ module Archlinux
 				missing_files = files-existing_files
 				SH.logger.warn "In #{cmd}, missing files: #{missing_files.join(', ')}" unless missing_files.empty?
 				unless existing_files.empty?
-					sign_files = @config&.use_sign(:package)
+					sign_files = @config&.use_sign?(:package)
 					PackageFiles.new(*existing_files, config: @config).sign(sign_name: sign_files) if sign_files
 					call(cmd, path.shellescape, *existing_files, default_opts: default_opts, **opts)
 				end
@@ -156,9 +156,7 @@ module Archlinux
 		end
 
 		def sign_files(sign_name: :package, **opts)
-			files.map do |pkg|
-				@config&.sign(pkg, sign_name: sign_name, **opts) if pkg.file?
-			end.compact
+			@config&.sign(*files, sign_name: sign_name, **opts)
 		end
 		def sign_db(sign_name: :db, **opts)
 			@config&.sign(@file, sign_name: sign_name, **opts) if @file.file?

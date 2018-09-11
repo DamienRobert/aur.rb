@@ -179,7 +179,7 @@ module Archlinux
 		end
 
 		#:package, :db
-		def use_sign(mode)
+		def use_sign?(mode)
 			opt_sign=@opts[:sign]
 			if opt_sign.is_a?(Hash)
 				opt_sign[mode]
@@ -188,23 +188,26 @@ module Archlinux
 			end
 		end
 
-		def sign(file, sign_name: nil, force: false)
-			sig="#{file}.sig"
-			if !Pathname.new(file).file?
-				SH.logger.error "Invalid file to sign #{file}"
-				return nil
-			end
-			if !force and Pathname.new(sig).file?
-				SH.logger.debug "Signature #{sig} already exits, skipping"
-				return nil
-			end
-			sign_name=use_sign(sign_name) if sign_name.is_a?(Symbold)
-			args=['--detach-sign', '--no-armor']
-			args+=['-u', sign_name] if sign_name.is_a?(String)
-			@config.launch(:gpg, *args, file) do |*args|
-				suc, _r=SH.sh(*args)
-				suc ? file : nil
-			end
+		# return the files that were signed
+		def sign(*files, sign_name: nil, force: false)
+			files.map do |file|
+				sig="#{file}.sig"
+				if !Pathname.new(file).file?
+					SH.logger.error "Invalid file to sign #{file}"
+					next
+				end
+				if !force and Pathname.new(sig).file?
+					SH.logger.debug "Signature #{sig} already exits, skipping"
+					next
+				end
+				sign_name=use_sign(sign_name) if sign_name.is_a?(Symbold)
+				args=['--detach-sign', '--no-armor']
+				args+=['-u', sign_name] if sign_name.is_a?(String)
+				@config.launch(:gpg, *args, file) do |*args|
+					suc, _r=SH.sh(*args)
+					suc ? file : nil
+				end
+			end.compact
 		end
 	end
 

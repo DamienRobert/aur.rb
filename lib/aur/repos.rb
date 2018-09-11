@@ -161,9 +161,7 @@ module Archlinux
 		end
 
 		def sign(sign_name: :package, **opts)
-			@files.map do |pkg|
-				@config&.sign(pkg, sign_name: sign_name, **opts) if pkg.file?
-			end.compact
+			@config&.sign(*@files, sign_name: sign_name, **opts)
 		end
 
 		def self.from_dir(dir)

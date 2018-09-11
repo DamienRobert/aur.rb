@@ -206,7 +206,7 @@ module Archlinux
 			success
 		end
 
-		def make(*args, sign: config.use_sign(:package), default_opts: [], force: false, asdeps: @asdeps, **opts)
+		def make(*args, sign: config&.use_sign?(:package), default_opts: [], force: false, asdeps: @asdeps, **opts)
 			default_opts << "--sign" if sign
 			default_opts << "--key=#{sign}" if sign.is_a?(String)
 			default_opts << "--force" if force
@@ -222,7 +222,7 @@ module Archlinux
 			@config.devtools.mkarchroot(*args)
 		end
 
-		def makechroot(*args, sign: @config.use_sign(:package), force: false, **opts)
+		def makechroot(*args, sign: @config&.use_sign?(:package), force: false, **opts)
 			unless force
 				if list.all? {|f| f.exist?}
 					SH.logger.info "Skipping #{@dir} since it is already built (use force=true to override)"
@@ -270,9 +270,7 @@ module Archlinux
 		end
 
 		def sign(sign_name: :package, **opts)
-			list(**opts).each do |pkg|
-				@config.sign(pkg, sign_name: sign_name, **opts) if pkg.file?
-			end
+			@config.sign(list.select {|f| f.file?}, sign_name: sign_name, **opts)
 		end
 
 	end
