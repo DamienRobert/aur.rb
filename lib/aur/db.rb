@@ -1,5 +1,6 @@
 require 'aur/config'
 require 'aur/packages'
+require 'aur/repos'
 require 'time'
 
 module Archlinux
@@ -120,11 +121,19 @@ module Archlinux
 			files
 		end
 
-		def add(*files, cmd: :'repo-add', default_opts:[], sign: @config.sign(:repo), **opts)
+		def add(*files, cmd: :'repo-add', default_opts:[], sign: @config&.use_sign(:db), **opts)
 			default_opts+=['-s', '-v'] if sign
 			default_opts+=['--key', sign] if sign.is_a?(String)
-			unless files.empty?
-				call(cmd, path.shellescape, *files, default_opts: default_opts, **opts)
+			dir.chdir do
+				files.map! {|f| Pathname.new(f)}
+				existing_files=files.select {|f| f.file?}
+				missing_files = files-existing_files
+				SH.logger.warn "In #{cmd}, missing files: #{missing_files.join(', ')}" unless missing_files.empty?
+				unless existing_files.empty?
+					sign_files = @config&.use_sign(:package)
+					PackageFiles.new(*existing_files, config: @config).sign(sign_name: sign_files) if sign_files
+					call(cmd, path.shellescape, *existing_files, default_opts: default_opts, **opts)
+				end
 			end
 		end
 
@@ -139,23 +148,30 @@ module Archlinux
 		end
 
 		def dir_packages
-			PackageFiles.from_dir(dir).packages
+			PackageFiles.from_dir(dir, config: @config).packages
 		end
 
 		def package_files
-			PackageFiles.new(*files).packages
+			PackageFiles.new(*files, config: @config).packages
 		end
 
-		def sign_files(sign=true, resign: false)
+		def sign_files(sign_name: :package, **opts)
 			files.map do |pkg|
-				if pkg.file?
-					next if !resign and Pathname.new("#{pkg}.sig").file?
-					SH.sh("gpg #{sign.is_a?(String) ? "-u #{sign}" : ""} --detach-sign --no-armor #{pkg.shellescape}")
-					pkg
-				end
+				@config&.sign(pkg, sign_name: sign_name, **opts) if pkg.file?
 			end.compact
 		end
+		def sign_db(sign_name: :db, **opts)
+			@config&.sign(@file, sign_name: sign_name, **opts) if @file.file?
+		end
 
+		# if we missed some signatures, resign them (and add them back to the
+		# db to get the signatures in the db). This override the sign:false
+		# config options.
+		def resign(**opts)
+			signed_files=sign_files(**opts)
+			add(*signed_files) #note that this may try to sign again, but since the signature exists it won't launch gpg
+			sign_db(**opts) #idem, normally the db will be signed by repo-add -v, but in case the signature was turned off in the config, this forces the signautre
+		end
 
 		def check
 			packages.same?(package_files)

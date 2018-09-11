@@ -106,13 +106,12 @@ module Archlinux
 	end
 
 	class PackageFiles
-		def self.create(v)
-			v.is_a?(self) ? v : self.new(v)
-		end
+		extend CreateHelper
 
 		attr_accessor :files
-		def initialize(*files)
-			@files=files.map {|file| DR::Pathname.new(file)}
+		def initialize(*files, config: Archlinux.config)
+			@files=files.map {|file| Pathname.new(file)}
+			@config=config
 		end
 		
 		def infos(slice=200) #the command line should not be too long
@@ -161,13 +160,9 @@ module Archlinux
 			@packages ||= PackageList.new(self.infos)
 		end
 
-		def sign(sign=true, resign: false)
+		def sign(sign_name: :package, **opts)
 			@files.map do |pkg|
-				if pkg.file?
-					next if !resign and Pathname.new("#{pkg}.sig").file?
-					SH.sh("gpg #{sign.is_a?(String) ? "-u #{sign}" : ""} --detach-sign --no-armor #{pkg.shellescape}")
-					pkg
-				end
+				@config&.sign(pkg, sign_name: sign_name, **opts) if pkg.file?
 			end.compact
 		end
 

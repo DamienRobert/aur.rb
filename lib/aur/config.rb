@@ -1,4 +1,5 @@
 require 'aur/helpers'
+require 'aur/packages'
 
 module Archlinux
 
@@ -19,7 +20,6 @@ module Archlinux
 			@opts=default_config.merge(opts)
 			user_conf=wrap.call(self)
 			@opts.merge!(user_conf) if user_conf.is_a?(Hash)
-			run_sudo_loop if dig(:sudo_loop, :active)
 		end
 
 		def sh_config
@@ -36,7 +36,7 @@ module Archlinux
 					active: false, #do we use the chroot?
 					update: 'pacman -Syu --noconfirm', #how to update an existing chroot
 				},
-				packages: :AurPackageList,
+				packages: AurPackageList,
 				sign: true, #can be made more atomic, cf the sign method
 				config_files: {
 					default: {
@@ -61,23 +61,13 @@ module Archlinux
 				sudo_loop: {
 					command: "sudo -v",
 					interval: 30,
-					active: false,
+					active: true,
 				}
 			}
 		end
 
 		def get_config_file(name, type: :default)
 			dig(:config_files, type, name) || dig(:config_files, :default, name)
-		end
-
-		#:makepkg, :makechrootpkg, :repo (=repo-add, repo-remove)
-		def sign(mode)
-			opt_sign=@opts[:sign]
-			if opt_sign.is_a?(Hash)
-				opt_sign[mode]
-			else
-				opt_sign
-			end
 		end
 
 		def view(dir)
@@ -194,7 +184,38 @@ module Archlinux
 		end
 
 		def to_packages(l=[])
-			Archlinux.const_get(@opts[:packages]).new(l)
+			klass=@opts[:packages]
+			klass=Archlinux.const_get(klass) if klass.is_a?(Symbol)
+			klass.new(l)
+		end
+
+		#:package, :db
+		def use_sign(mode)
+			opt_sign=@opts[:sign]
+			if opt_sign.is_a?(Hash)
+				opt_sign[mode]
+			else
+				opt_sign
+			end
+		end
+
+		def sign(file, sign_name: nil, force: false)
+			sig="#{file}.sig"
+			if !Pathname.new(file).file?
+				SH.logger.error "Invalid file to sign #{file}"
+				return nil
+			end
+			if !force and Pathname.new(sig).file?
+				SH.logger.debug "Signature #{sig} already exits, skipping"
+				return nil
+			end
+			sign_name=use_sign(sign_name) if sign_name.is_a?(Symbold)
+			args=['--detach-sign', '--no-armor']
+			args+=['-u', sign_name] if sign_name.is_a?(String)
+			@config.launch(:gpg, *args, file) do |*args|
+				suc, _r=SH.sh(*args)
+				suc ? file : nil
+			end
 		end
 	end
 
