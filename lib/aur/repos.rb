@@ -113,8 +113,37 @@ module Archlinux
 			@files=files.map {|file| Pathname.new(file)}
 			@config=config
 		end
+
+		def infos
+			# expac_infos
+			bsdtar_infos
+		end
 		
-		def infos(slice=200) #the command line should not be too long
+		def bsdtar_infos
+			list=[]
+			@files.each do |file|
+				info={repo: file}
+				SH.run_simple("bsdtar -xOqf #{file.shellescape} .PKGINFO", chomp: :lines).each do |l|
+					next if l=~/^#/
+					key, value=l.split(/\s*=\s*/,2)
+					key=key.to_sym
+					case key
+					when :builddate
+						value=Time.at(value.to_i)
+					when :size
+						key=:install_size; value=value.to_i
+					when :pkgver
+						key=:version
+					end
+					Archlinux.add_to_hash(info, key, value)
+				end
+				# no need to add at the end, pacinfo always end with a new line
+				list << info
+			end
+			list
+		end
+
+		def expac_infos(slice=200) #the command line should not be too long
 			format={
 				filename: "%f",
 				pkgname: "%n",
@@ -164,9 +193,15 @@ module Archlinux
 			@config&.sign(*@files, sign_name: sign_name, **opts)
 		end
 
-		def self.from_dir(dir)
+		def self.from_dir(dir, config: Archlinux.config)
 			dir=Pathname.new(dir)
-			self.new(*dir.glob('*.pkg.*').map {|g| next if g.to_s.end_with?('~') or g.to_s.end_with?('.sig'); f=dir+g; next unless f.readable?; f}.compact)
+			list=dir.glob('*.pkg.*').map do |g| 
+				next if g.to_s.end_with?('~') or g.to_s.end_with?('.sig')
+				f=dir+g
+				next unless f.readable?
+				f
+			end.compact
+			self.new(*list, config: config)
 		end
 	end
 end

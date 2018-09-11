@@ -35,16 +35,16 @@ module Archlinux
 			@props[:opt_depends]||={}
 			props.each do |k,v|
 				k=Utils.to_snake_case(k.to_s).to_sym
-				k=:opt_depends if k==:optdepends || k==:optional_deps
-				k=:make_depends if k==:makedepends
-				k=:check_depends if k==:checkdepends
-				k=:build_date if k==:checkdepends
+				k=:opt_depends if k==:optdepends or k==:optdepend or k==:optional_deps
+				k=:make_depends if k==:makedepends or k==:makedepend
+				k=:check_depends if k==:checkdepends or k==:checkdepend
+				k=:build_date if k==:builddate
 				k=:depends if k==:depends_on or k==:requires
 				k=:conflicts if k==:conflicts_with
 				k=:pkgbase if k==:base
 				k=:depends_for if k==:required_by
 				k=:opt_depends_for if k==:optional_for
-				k=:description if k==:desc
+				k=:description if k==:desc or k==:pkgdesc
 				case k
 				when :first_submitted, :last_modified, :out_of_date, :build_date, :install_date
 					if v and !v.is_a?(Time)
