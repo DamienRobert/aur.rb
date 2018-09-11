@@ -53,9 +53,12 @@ module Archlinux
 						pacman: "/etc/pacman.conf", # pacman-conf for local makepkg build
 					},
 				},
-				sh_config: { #default programs options
-					makepkg: {default_opts: ["-crs", "--needed"]},
-					makechrootpkg: {default_opts: ["-cu"]},
+				sh_config: { #default programs options, called each time
+					makepkg: {default_opts: []},
+					makechrootpkg: {default_opts: ["-c"]}, #-u # no need to -u since we update root before ourselves
+				},
+				makepkg: {
+					build_args: ["-crs", "--needed"], #only used when building
 				},
 				view: "vifm -c view! -c tree -c 0", #can also be a Proc
 				sudo_loop: {
@@ -168,7 +171,7 @@ module Archlinux
 			if dig(:sudo_loop, :active)
 				opts=dig(:sudo_loop).clone
 				opts.delete(:active)
-				sudo.extend(SH::SudoLoop.config(**opts))
+				sudo.extend(SH::SudoLoop.configure(**opts))
 			end
 			sudo
 		end

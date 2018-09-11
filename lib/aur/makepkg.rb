@@ -38,7 +38,7 @@ module Archlinux
 		end
 
 		def write_patch(logdir)
-			if call("rev-parse", "aur_view", method: :run_simple)
+			if call("rev-parse", "--verify", "aur_view", method: :run_simple, quiet: true)
 				SH::VirtualFile.new("orderfile", "PKGBUILD").create(true) do |tmp|
 					patch=call("diff", "-O#{tmp}", "aur_view", "HEAD", method: :run_simple)
 					(logdir+"#{@dir.basename}.patch").write(patch) unless patch.empty?
@@ -214,6 +214,7 @@ module Archlinux
 			default_opts << "--key=#{sign}" if sign.is_a?(String)
 			default_opts << "--force" if force
 			default_opts << "--asdeps" if asdeps
+			default_opts+=@config.dig[:makepkg][:build_args]
 
 			success, _r=call(*args, method: :sh, default_opts: default_opts, env: @env, **opts)
 			get_pkg.done_build if success
@@ -246,7 +247,7 @@ module Archlinux
 			db.add(*list.select {|l| r=l.exist?; SH.logger.warn "Package #{l} not built, not adding to the db #{db.repo_name}" unless r; r})
 		end
 
-		def build(*makepkg_args, mkarchroot: false, chroot: @config[:build_chroot], **opts)
+		def build(*makepkg_args, mkarchroot: false, chroot: @config.dig(:chroot, :active), **opts)
 			SH.logger.info "=> Building #{@dir}"
 			if chroot
 				self.mkarchroot if mkarchroot
@@ -347,7 +348,8 @@ module Archlinux
 		end
 
 		def mkarchroot
-			@config.devtools.mkarchroot("base-devel")
+			args=@config.dig(:chroot, :packages) || ["base-devel"]
+			@config.devtools.mkarchroot(*args)
 		end
 
 		def list
@@ -359,7 +361,7 @@ module Archlinux
 			db.add(*list.select {|l| l.exist?})
 		end
 
-		def build(*args, chroot: @config[:build_chroot], **opts)
+		def build(*args, chroot: @config.dig(:chroot, :active), **opts)
 			mkarchroot if chroot
 			@l.values.each do |l|
 				l.build(*args, chroot: chroot, **opts)

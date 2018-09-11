@@ -182,10 +182,10 @@ module Archlinux
 				default_opts += ["-C", file] if key==:pacman_conf
 				default_opts += ["-M", file] if key==:makepkg_conf
 			end
-			root.sudo_mkpath unless chroot.directory?
+			root.sudo_mkpath unless root.directory?
 			root=root+'root'
 			opts[:method]||=:sh
-			if (chroot+'root'+'.arch-chroot').file?
+			if (root+'.arch-chroot').file?
 				# Note that if nspawn is not called (and the chroot does not
 				# exist), then the passed pacman.conf will not be replace the one
 				# in the chroot. And when makechrootpkg calls nspawn, it does not
