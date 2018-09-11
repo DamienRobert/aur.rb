@@ -256,14 +256,13 @@ module Archlinux
 				success, _r=make(*makepkg_args, **opts)
 			end
 			if success and (db=@config.db)
-				add_to_db(db)
+				success=add_to_db(db)
 				if !chroot #sync db
 					tools=@config.makepkg_config
 					tools.sync_db(db.repo_name)
 				end
-			else
-				success
 			end
+			success
 		end
 
 		def install(*args, view: true, **opts)
@@ -328,7 +327,7 @@ module Archlinux
 					r=true
 				end
 				if r and pkgver
-					@l.values.each do |l|
+					@l.values.all? do |l|
 						l.get_source if l.pkgver?
 					end
 				else
@@ -365,7 +364,7 @@ module Archlinux
 
 		def build(*args, chroot: @config.dig(:chroot, :active), **opts)
 			mkarchroot if chroot
-			@l.values.each do |l|
+			@l.values.all? do |l|
 				l.build(*args, chroot: chroot, **opts)
 			end
 		end
