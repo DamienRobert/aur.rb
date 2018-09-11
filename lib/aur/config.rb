@@ -18,9 +18,9 @@ module Archlinux
 			file=Pathname.new(ENV["XDG_CONFIG_HOME"] || "#{ENV['HOME']}/.config") + file if file.relative?
 			file_config= file.readable? ? file.read : '{}'
 			wrap=eval("Proc.new { |context| #{file_config} }")
-			@opts=default_config.merge(opts)
+			@opts=default_config.deep_merge(opts)
 			user_conf=wrap.call(self)
-			@opts.merge!(user_conf) if user_conf.is_a?(Hash)
+			@opts.deep_merge!(user_conf) if user_conf.is_a?(Hash)
 		end
 
 		def sh_config
@@ -190,6 +190,7 @@ module Archlinux
 
 		# return the files that were signed
 		def sign(*files, sign_name: nil, force: false)
+			sign_name=use_sign(sign_name) if sign_name.is_a?(Symbold)
 			files.map do |file|
 				sig="#{file}.sig"
 				if !Pathname.new(file).file?
@@ -200,7 +201,6 @@ module Archlinux
 					SH.logger.debug "Signature #{sig} already exits, skipping"
 					next
 				end
-				sign_name=use_sign(sign_name) if sign_name.is_a?(Symbold)
 				args=['--detach-sign', '--no-armor']
 				args+=['-u', sign_name] if sign_name.is_a?(String)
 				@config.launch(:gpg, *args, file) do |*args|

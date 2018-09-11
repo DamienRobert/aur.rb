@@ -1,6 +1,7 @@
 require 'forwardable'
 require 'dr/base/utils'
 require 'shell_helpers'
+require 'dr/ruby_ext/core_ext'
 
 module Archlinux
 	ArchlinuxError=Class.new(StandardError)
