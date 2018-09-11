@@ -39,6 +39,7 @@ module Archlinux
 					packages: ['base-devel'], #the packages that are installed in the chroto
 				},
 				default_packages_class: AurPackageList,
+				default_install_list_class: AurMakepkgCache,
 				default_get_class: Git, #we use git to fetch PKGBUILD from aur
 				sign: true, #can be made more atomic, cf the sign method
 				config_files: {
@@ -208,6 +209,10 @@ module Archlinux
 					suc ? file : nil
 				end
 			end.compact
+		end
+
+		def install_list
+			@install_list ||= @opts[:default_install_list_class].new(config: self)
 		end
 	end
 

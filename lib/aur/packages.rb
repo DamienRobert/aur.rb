@@ -461,7 +461,9 @@ module Archlinux
 		# essentially just a wrapper around resolve
 		def as_ext_query(*queries, provides: false, full_pkgs: false)
 			r=self.resolve(*queries, provides: provides, fallback: false)
-			l= full_pkgs ? @l : slice(r.values)
+			# puts "#{self.class}: #{queries} => #{r}"
+			# require 'pry'; binding.pry
+			l= full_pkgs ? @l : slice(*r.values)
 			return r, l
 		end
 
@@ -496,8 +498,9 @@ module Archlinux
 
 	# cache MakepkgList and download PKGBUILD dynamically
 	class MakepkgCache < PackageList
-		def initialize(*args, get_mode: :cache, **opts)
+		def initialize(*args, get_mode: {}, **opts)
 			super(*args, **opts)
+			# puts "MakepkgCache called with options: #{[args, get_mode]}"
 			@select_existing=get_mode.delete(:existing)
 			@get_mode=get_mode
 			@ext_query=method(:ext_query)
@@ -516,7 +519,7 @@ module Archlinux
 		def initialize(*args, **opts)
 			super
 			@aur_cache = AurCache.new(**opts)
-			@makepkg_cache ||= MakepkgCache.new(get_mode: {update: true, clone: true, pkgver: true, view: false}, **opts)
+			@makepkg_cache ||= MakepkgCache.new(get_mode: {update: true, clone: true, pkgver: true, view: true}, **opts)
 			@ext_query=method(:ext_query)
 		end
 
@@ -549,7 +552,7 @@ module Archlinux
 		def initialize(*args, **opts)
 			super
 			# @install_list=self.class.cache
-			@install_list=AurMakepkgCache.new(**opts)
+			@install_list=@config.install_list #AurMakepkgCache.new(**opts)
 			@children_mode=%i(depends make_depends check_depends)
 			@install_method=method(:install_method)
 			@query_ignore=official

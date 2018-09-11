@@ -12,7 +12,7 @@ require 'aur/packages'
 aur=Archlinux::AurPackageList.new([])
 l=aur.install("pacaur")
 
-aur=Archlinux::AurPackageList.new(Archlinux.config.db.packages)
+aur=Archlinux.config.db.packages
 aur.do_update
 =end
 

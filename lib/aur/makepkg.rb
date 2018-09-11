@@ -19,7 +19,7 @@ module Archlinux
 
 		def url
 			url=URI.parse(@url)
-			url.relative ? @config[:aur_url]+@url.to_s+".git" : url
+			url.relative? ? @config[:aur_url]+@url.to_s+".git" : url
 		end
 
 		def call(*args,**opts,&b)
@@ -51,8 +51,10 @@ module Archlinux
 			suc, _r=call("pull")
 			suc
 		end
+
 		def do_clone(url)
-			suc, _r=call("clone", url, @dir)
+			#we cannot call 'call' here because the folder does not yet exist
+			suc, _r=@config.launch(:git, "clone", url, @dir, method: :sh)
 			suc
 		end
 
@@ -64,8 +66,8 @@ module Archlinux
 			end
 		end
 
-		def clone(url=@url, logdir: nil)
-			if do_clone
+		def clone(url=self.url, logdir: nil)
+			if do_clone(url)
 				(logdir+"!#{@dir.basename}").on_ln_s(@dir.realpath) if logdir
 			else
 				SH.logger.error("Error in cloning #{url} to #{@dir}")
@@ -185,15 +187,16 @@ module Archlinux
 			elsif !@dir.exist? and clone
 				get_pkg.clone(logdir: logdir)
 			end
-			if pkgver and pkgver?
-				get_source
-			end
-			if view
+			if view #view before calling pkgver
 				r=@config.view(@dir)
 				get_pkg.done_view if r
-				r
 			else
-				true
+				r=true
+			end
+			if r and pkgver and pkgver?
+				get_source
+			else
+				return r #abort pkgver
 			end
 		end
 
@@ -202,7 +205,7 @@ module Archlinux
 		end
 
 		def get_source
-			success, _r=call('--nobuild', method: :sh)
+			success, _r=call('--nodeps', '--nobuild', method: :sh)
 			success
 		end
 
@@ -296,15 +299,20 @@ module Archlinux
 
 		def packages(refresh=false, get: false)
 			@packages = nil if refresh
+			if get
+				get_options={}
+				get_options=get if get.is_a?(Hash)
+				self.get(**get_options)
+			end
 			@packages ||= @l.values.reduce(@config.to_packages) do |list, makepkg|
-				list.merge(makepkg.packages(get: get))
+				list.merge(makepkg.packages(get: false))
 			end
 		end
 
-		def get(*args, view: true, **opts)
+		def get(*_args, view: true, pkgver: false, **opts)
 			Dir.mktmpdir("aur_view") do |d|
 				@l.values.each do |l|
-					l.get(*args, logdir: d, view: false, **opts)
+					l.get(*_args, logdir: d, view: false, pkgver: false, **opts) #l.get does not take arguments
 				end
 				if view
 					r=@config.view(d)
@@ -313,9 +321,15 @@ module Archlinux
 							l.get_pkg.done_view
 						end
 					end
-					r
 				else
-					return true
+					r=true
+				end
+				if r and pkgver
+					@l.values.each do |l|
+						l.get_source if l.pkgver?
+					end
+				else
+					return r
 				end
 			end
 		end

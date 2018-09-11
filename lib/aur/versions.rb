@@ -22,9 +22,15 @@ module Archlinux
 				@epoch=epoch || 0
 				@real_epoch= epoch ? true : false
 				@real_version=version
-				@version=Gem::Version.new(version)
+				@version=set_version(version)
 				@pkgrel=pkgrel
 			end
+		end
+
+		# Gem::Version is super pickly :-(
+		def set_version(version)
+			version=version.tr('+_','.')
+			@version=Gem::Version.new(version) rescue Gem::Version.new("0.#{version}")
 		end
 
 		private def parse(v)
@@ -43,9 +49,8 @@ module Archlinux
 			end
 			@epoch=epoch
 			version, pkgrel=Utils.rsplit(rest, '-', 2)
+			set_version(version)
 			@real_version=version
-			version=version.tr('+_','.')
-			@version=Gem::Version.new(version) rescue Gem::Version.new("0.#{version}")
 			@pkgrel=pkgrel.to_i
 		end
 		
