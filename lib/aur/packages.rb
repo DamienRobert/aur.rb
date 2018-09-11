@@ -112,7 +112,7 @@ module Archlinux
 		extend CreateHelper
 
 		Archlinux.delegate_h(self, :@l)
-		attr_accessor :children_mode, :ext_query, :ignore, :query_ignore, :install_list, :install_method
+		attr_accessor :children_mode, :ext_query, :ignore, :query_ignore, :install_list, :install_method, :install_list_of
 		attr_reader :l, :versions, :provides_for
 
 		def initialize(list=[], config: Archlinux.config)
@@ -122,13 +122,15 @@ module Archlinux
 			@ext_query=nil #how to get missing packages, default
 			@children_mode=%i(depends) #children, default
 			@ignore=[] #ignore packages update
-			@query_ignore=[] #query ignore packages (ie these won't be returned by a query)
-			@install_list=nil
-			@install_method=nil
+			@query_ignore=[] #query ignore packages (ie these won't be returned by a query; so stronger than @ignore)
+			@install_list=nil #how do we check for new packages / updates
+			@install_list_of=nil #are we used to check for new packages / updates
+			@install_method=nil #how to install stuff
 			@config=config
 			merge(list)
 		end
 
+		# the names without the versions
 		def names
 			@versions.keys
 		end
@@ -441,6 +443,22 @@ module Archlinux
 			method(:as_ext_query)
 		end
 
+		def chain_query(ext_query)
+			ext_query=ext_query.as_ext_query if ext_query.is_a?(PackageList)
+			if @ext_query
+				orig_query=@ext_query
+				@ext_query = lambda do |*args, **opts|
+					r, l=orig_query.call(*args, **opts)
+					missed = args-r.keys
+					r2, l2=ext_query.call(*missed, **opts)
+					return r.merge(r2), l.merge(l2)
+				end
+			else
+				@ext_query=ext_query
+			end
+		end
+
+		# essentially just a wrapper around resolve
 		def as_ext_query(*queries, provides: false, full_pkgs: false)
 			r=self.resolve(*queries, provides: provides, fallback: false)
 			l= full_pkgs ? @l : slice(r.values)
@@ -504,6 +522,11 @@ module Archlinux
 		def ext_query(*queries, **opts)
 			devel=queries.select do |query|
 				Query.strip(query)=~/(-git|-hg|-svn)$/
+			end
+			if @install_list_of
+				# we only want to check the pkgver of packages we already have; for
+				# the others the aur version is enough
+				devel=devel & @install_list_of.names
 			end
 			aur=queries-devel
 			r1, l1=@makepkg_cache.as_ext_query(*devel, **opts)
