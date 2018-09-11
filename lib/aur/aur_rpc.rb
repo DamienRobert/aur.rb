@@ -134,6 +134,7 @@ module Archlinux
 		end
 	end
 
+	# aur query but with a local config parameter
 	class AurQueryCustom
 		extend CreateHelper
 

@@ -274,7 +274,7 @@ module Archlinux
 		end
 
 		def sign(sign_name: :package, **opts)
-			@config.sign(list.select {|f| f.file?}, sign_name: sign_name, **opts)
+			@config.sign(*list.select {|f| f.file?}, sign_name: sign_name, **opts)
 		end
 
 	end

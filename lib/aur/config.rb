@@ -194,7 +194,7 @@ module Archlinux
 
 		# return the files that were signed
 		def sign(*files, sign_name: nil, force: false)
-			sign_name=use_sign(sign_name) if sign_name.is_a?(Symbold)
+			sign_name=use_sign(sign_name) if sign_name.is_a?(Symbol)
 			files.map do |file|
 				sig="#{file}.sig"
 				if !Pathname.new(file).file?
