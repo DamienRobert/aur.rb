@@ -55,7 +55,8 @@ module Archlinux
 				},
 				sh_config: { #default programs options, called each time
 					makepkg: {default_opts: []},
-					makechrootpkg: {default_opts: ["-c"]}, #-u # no need to -u since we update root before ourselves
+					makechrootpkg: {default_opts: ["-cu"]},
+					# So on fist thought, we do not need -u since we update 'root' before ourselves; but if we build several packages we may need the previous ones in the db, and since we only update 'root' once, they won't be available on 'copy'; so we still need '-u'
 				},
 				makepkg: {
 					build_args: ["-crs", "--needed"], #only used when building
@@ -194,7 +195,7 @@ module Archlinux
 
 		# return the files that were signed
 		def sign(*files, sign_name: nil, force: false)
-			sign_name=use_sign(sign_name) if sign_name.is_a?(Symbol)
+			sign_name=use_sign?(sign_name) if sign_name.is_a?(Symbol)
 			files.map do |file|
 				sig="#{file}.sig"
 				if !Pathname.new(file).file?

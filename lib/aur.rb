@@ -13,9 +13,14 @@ aur=Archlinux::AurPackageList.new([])
 l=aur.install("pacaur")
 
 aur=Archlinux.config.db.packages
-aur.do_update
+aur.update?
 =end
 
 # TODO:
-# --devel
-# aur provides
+# --devel switch?
+# aur search cache
+# repo list of foreign packages
+# view only when updated/new
+# confirm before installing or updating pkgver (this is somewhat orthogonal to exiting when view return false since we may want to not view the files)
+# cli
+# tests
