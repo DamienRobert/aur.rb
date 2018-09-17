@@ -185,7 +185,11 @@ module Archlinux
 
 		def update(other=dir_packages)
 			r=check_update(other)
-			add(*(r[:refresh].merge(r[:add])).map {|_k,v| other[v[:out_pkg]].file.shellescape})
+			add(*(r[:refresh].merge(r[:add])).map do |_k,v|
+				pkg=other[v[:out_pkg]]
+				file = pkg.file || Pathname.new(pkg[:repo])
+				file.shellescape
+			end)
 			# remove(*(r[:remove].map {|_k,v| packages[v[:in_pkg]].file.shellescape}))
 			remove(*(r[:remove].map {|_k,v| Query.strip(v[:in_pkg])}))
 			@packages=nil #we need to refresh the list

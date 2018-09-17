@@ -180,6 +180,11 @@ module Archlinux
 			sudo
 		end
 
+		def stop_sudo_loop
+			sudo=self.sudo
+			sudo&.stop_sudo_loop if sudo&.respond_to?(:stop_sudo_loop)
+		end
+
 		def to_packages(l=[])
 			klass=@opts[:default_packages_class]
 			klass=Archlinux.const_get(klass) if klass.is_a?(Symbol)

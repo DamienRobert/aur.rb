@@ -97,7 +97,7 @@ module Archlinux
 		end
 
 		def file
-			Pathname.new(@props[:filename])
+			@props[:filename] && Pathname.new(@props[:filename])
 		end
 
 		def same?(other)
@@ -287,9 +287,13 @@ module Archlinux
 			l.values_at(*get(*args))
 		end
 
+		def get_package(pkg)
+			l[(get(pkg).first)]
+		end
+
 		# this is like a 'restrict' operation
 		def slice(*args)
-			self.class.new(@l.slice(*get(*args)))
+			self.class.new(l.slice(*get(*args)))
 		end
 
 		def children(node, mode=@children_mode, verbose: false, **opts, &b)
