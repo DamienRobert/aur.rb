@@ -13,10 +13,13 @@ module Archlinux
 		Archlinux.delegate_h(self, :@opts)
 		include SH::ShConfig
 
-		def initialize(file, **opts)
-			file=Pathname.new(file)
-			file=Pathname.new(ENV["XDG_CONFIG_HOME"] || "#{ENV['HOME']}/.config") + file if file.relative?
-			file_config= file.readable? ? file.read : '{}'
+		# pass nil to prevent loading a config file
+		def initialize(file="aur.rb", **opts)
+			if file
+				file=Pathname.new(file)
+				file=Pathname.new(ENV["XDG_CONFIG_HOME"] || "#{ENV['HOME']}/.config") + file if file.relative?
+			end
+			file_config= file&.readable? ? file.read : '{}'
 			wrap=eval("Proc.new { |context| #{file_config} }")
 			@opts=default_config.deep_merge(opts)
 			user_conf=wrap.call(self)
@@ -221,6 +224,5 @@ module Archlinux
 	end
 
 	self.singleton_class.attr_accessor :config
-	@config=Config.new("aur.rb")
-
+	@config ||= Config.new("aur.rb")
 end

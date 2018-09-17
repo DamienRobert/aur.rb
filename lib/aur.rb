@@ -17,6 +17,7 @@ aur.update?
 =end
 
 # TODO:
+# MakepkgList.from_dir
 # --devel switch?
 # aur search cache
 # repo list of foreign packages
@@ -24,3 +25,4 @@ aur.update?
 # confirm before installing or updating pkgver (this is somewhat orthogonal to exiting when view return false since we may want to not view the files)
 # cli
 # tests
+# default package list (think of the case of the user who don't want a db)
