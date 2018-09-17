@@ -392,9 +392,11 @@ module Archlinux
 		end
 
 		# this take a list of packages which can be updates of ours
+		# return check_updates of this list (restricted to our current
+		# packages, so it won't show any 'install' operation
 		def check_update(updates=@install_list, ignore: @ignore)
 			return [] if updates.nil?
-			new_pkgs=updates.slice(*packages) #ignore 'install' packages
+			new_pkgs=updates.slice(*names) #ignore 'install' packages
 			check_updates(new_pkgs, ignore: ignore)
 		end
 
@@ -521,8 +523,10 @@ module Archlinux
 		attr_accessor :aur_cache, :makepkg_cache
 		def initialize(*args, **opts)
 			super
+			#TODO share the same AurCache
+			#or simply share the same AurMakepkgCache?
 			@aur_cache = AurCache.new(**opts)
-			@makepkg_cache ||= MakepkgCache.new(get_mode: {update: true, clone: true, pkgver: true, view: true}, **opts)
+			@makepkg_cache = MakepkgCache.new(get_mode: {update: true, clone: true, pkgver: true, view: true}, **opts)
 			@ext_query=method(:ext_query)
 		end
 
@@ -556,6 +560,9 @@ module Archlinux
 			super
 			# @install_list=self.class.cache
 			@install_list=@config.install_list #AurMakepkgCache.new(**opts)
+			# TODO this won't work if we use several PackageList with the same
+			# cache at the same time
+			@install_list.install_list_of=self
 			@children_mode=%i(depends make_depends check_depends)
 			@install_method=method(:install_method)
 			@query_ignore=official

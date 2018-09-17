@@ -14,6 +14,11 @@ l=aur.install("pacaur")
 
 aur=Archlinux.config.db.packages
 aur.update?
+aur.install?("pacaur", update: true)
+
+# Clean/Change cache:
+Archlinux.config.instance_variable_set(:@install_list, nil)
+aur.install_list=Archlinux.config.install_list
 =end
 
 # TODO:
