@@ -229,7 +229,7 @@ module Archlinux
 			end
 		end
 
-		def sync_db(*names)
+		def sync_db(*names, install: [])
 			conf=PacmanConf.create(@opts[:pacman_conf])
 			new_conf={options: conf[:options], repos: {}}
 			repos=conf[:repos]
@@ -244,7 +244,9 @@ module Archlinux
 				if block_given?
 					return yield(pacman, file)
 				else
-					return pacman['-Syu', sudo: @config.sudo]
+					args=['-Syu']
+					args+=install
+					return pacman[*args, sudo: @config.sudo]
 				end
 			end
 		end

@@ -200,6 +200,16 @@ module Archlinux
 			end
 		end
 
+		# shortcut
+		def edit
+			get(view: true, update: false, clone: true, pkgver: false)
+		end
+		def edit_pkgbuild
+			get(view: false, update: false, clone: true, pkgver: false)
+			#TODO: @config.view_file/view_dir?
+			@config.view(@dir+"PKGBUILD")
+		end
+
 		def pkgver?
 			exist? and pkgbuild.read.match(/^\s*pkgver()/)
 		end
