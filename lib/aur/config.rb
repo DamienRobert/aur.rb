@@ -223,6 +223,17 @@ module Archlinux
 			end.compact
 		end
 
+		def verify_sign(*files)
+			args=['--verify']
+			files.map do |file|
+				file="#{file}.sig" unless file.to_s =~ /(.sig|.asc)/
+				launch(:gpg, *args, file) do |*args|
+					suc, _r=SH.sh(*args)
+					[file, suc]
+				end
+			end.to_h
+		end
+
 		def install_list
 			@install_list ||= @opts[:default_install_list_class].new(config: self)
 		end

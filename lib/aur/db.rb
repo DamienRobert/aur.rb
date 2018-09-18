@@ -181,11 +181,36 @@ module Archlinux
 			PackageFiles.new(*files, config: @config).packages
 		end
 
+		# sign the files in the db (return the list of signed file, by default
+		# unless force: true is passed this won't resign already signed files)
 		def sign_files(sign_name: :package, **opts)
 			@config&.sign(*files, sign_name: sign_name, **opts)
 		end
 		def sign_db(sign_name: :db, **opts)
 			@config&.sign(@file, sign_name: sign_name, **opts) if @file.file?
+		end
+
+		def verify_sign_db
+			@config&.verify_sign(@file)
+		end
+		def verify_sign_files
+			@config&.verify_sign(*files)
+		end
+		def verify_sign_pkgs(*pkgs)
+			packages.get_packages(*pkgs).map do |pkg|
+				pgpsign=pkg[:pgpsig]
+				if pgpsign
+					require 'base64'
+					sig=Base64.decode64(pgpsign)
+					filename=dir+pkg[:filename]
+					@config.launch(:gpg, "--enable-special-filenames", "--verify", "-", filename, mode: :capture, stdin_data: sig) do |*args|
+						suc, _r=SH.sh(*args)
+						[pkg.name, suc]
+					end
+				else
+					[pkg.name, false]
+				end
+			end.to_h
 		end
 
 		# if we missed some signatures, resign them (and add them back to the
