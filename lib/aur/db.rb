@@ -55,8 +55,7 @@ module Archlinux
 		end
 
 		# a db is a tar.gz archive of packages/desc, like yay-8.998-1/descr
-		def list
-			require 'dr/sh'
+		def bsdcat_list
 			res= SH.run_simple("bsdcat #{@file.shellescape}", chomp: :lines) {return nil}
 			list=[]; pkg={}; mode=nil
 			flush = lambda do
@@ -71,6 +70,33 @@ module Archlinux
 				if (m=l.match(/(\u0000+.*\u0000+)?%([A-Z0-9]*)%$/))
 					mode=m[2].downcase.to_sym
 					if m[1] #new db entry
+						flush.call #store old db entry
+						pkg={}
+					end
+				else
+					l=l.to_i if mode==:csize or mode==:isize
+					l=Time.at(l.to_i) if mode==:builddate
+					Archlinux.add_to_hash(pkg, mode, l)
+				end
+			end
+			flush.call #don't forget the last one
+			list
+		end
+
+		def list
+			res= SH.run_simple("bsdtar -xOf #{@file.shellescape} '*/desc'", chomp: :lines) {return nil}
+			list=[]; pkg={}; mode=nil
+			flush = lambda do
+				unless pkg.empty?
+					pkg[:repo]||=path
+					list << pkg
+				end
+			end
+			res.each do |l|
+				next if l.empty?
+				if (m=l.match(/^%([A-Z0-9]*)%$/))
+					mode=m[1].downcase.to_sym
+					if mode==:filename #new db entry
 						flush.call #store old db entry
 						pkg={}
 					end
