@@ -50,7 +50,7 @@ module Archlinux
 					if v and !v.is_a?(Time)
 						v= v.is_a?(Integer) ? Time.at(v) : Time.parse(v)
 					end
-				when :repository, :groups, :depends, :make_depends, :check_depends, :conflicts, :replaces, :provides, :depends_for, :opt_depends_for
+				when :repository, :groups, :depends, :make_depends, :check_depends, :conflicts, :replaces, :provides, :depends_for, :opt_depends_for, :license, :source
 					v=Array(v)
 				when :opt_depends
 					unless v.is_a?(Hash)
