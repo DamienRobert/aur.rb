@@ -3,6 +3,7 @@ require 'aur/packages'
 require 'time'
 
 module Archlinux
+	# this old a repo name
 	class Repo
 		extend CreateHelper
 
@@ -14,12 +15,19 @@ module Archlinux
 		def list(mode: :pacsift)
 			command= case mode
 			when :pacman, :name
-				"pacman -Slq #{@repo.shellescape}" #returns pkg
+				if @repo=="local"
+					"pacman -Qq"
+				else
+					"pacman -Slq #{@repo.shellescape}" #returns pkg
+				end
 			when :pacsift, :repo_name
 				#this mode is prefered, so that if the same pkg is in different
 				#repo, than pacman_info returns the correct info
+				#pacsift understand the 'local' repo
 				"pacsift --exact --repo=#{@repo.shellescape} <&-" #returns repo/pkg
 			when :paclist, :name_version
+				#cannot show the local repo; we could use `expac -Q '%n %v' but we
+				#don't use this mode anyway
 				"paclist #{@repo.shellescape}" #returns 'pkg version'
 			end
 			SH.run_simple(command, chomp: :lines) {return nil}
@@ -102,11 +110,17 @@ module Archlinux
 			end
 		end
 
+		# Exemple: Archlinux::Repo.packages(* %x/pacman -Qqm/.split)
 		def self.packages(*packages)
 			PackageList.new(info(*packages))
 		end
+
+		def self.foreign_packages
+			self.packages(* %x(pacman -Qqm).split)
+		end
 	end
 
+	# a list of packages archives
 	class PackageFiles
 		extend CreateHelper
 

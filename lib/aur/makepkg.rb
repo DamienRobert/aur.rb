@@ -134,7 +134,7 @@ module Archlinux
 				self.get(**get_options)
 			end
 			stdin=call("--printsrcinfo", chomp: :lines)
-			mode=nil; r={}; current={}; pkgbase=nil; pkgname=nil
+			mode=nil; r={}; current={}; pkgname=nil
 			stdin.each do |l|
 				key, value=l.split(/\s*=\s*/,2)
 				next if key.nil?
@@ -177,7 +177,7 @@ module Archlinux
 
 		def get(logdir: nil, view: false, update: true, clone: true, pkgver: false)
 			if logdir
-				logdir=DR::Pathname.new(logdir)
+				logdir=Pathname.new(logdir)
 				logdir.mkpath
 			end
 			get_pkg=self.get_pkg
@@ -294,6 +294,17 @@ module Archlinux
 		extend CreateHelper
 		Archlinux.delegate_h(self, :@l)
 		attr_accessor :config, :cache, :l
+
+		def self.from_dir(dir=nil, config: Archlinux.config)
+			l=[]
+			dir=config.cachedir if dir.nil?
+			dir.children.each do |child|
+				if child.directory? and (child+"PKGBUILD").file?
+					l << child
+				end
+			end
+			self.new(l, config: config)
+		end
 
 		def initialize(l, config: Archlinux.config, cache: config.cachedir)
 			@config=config
