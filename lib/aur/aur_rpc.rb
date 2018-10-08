@@ -111,7 +111,7 @@ module Archlinux
 			end
 			if query
 				Net::HTTP.get_response(URI("#{@config[:aur_url]}/#{type}.gz")) do |res|
-					date=res["date"]
+					date=res["date"] #There are no 'Last-Modified' field, cf https://bugs.archlinux.org/task/49092
 					update=true
 					if date
 						epoch=Time.parse(date).to_i

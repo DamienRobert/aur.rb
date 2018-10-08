@@ -40,7 +40,7 @@ db.check_udpate / db.update
 # - use https://github.com/falconindy/pkgbuild-introspection/ to  speed up .SRCINFO
 # - read the local db directly
 # - --devel switch?
-# - aur search cache
+# - aur search cache + global aur cache
 # - view only when updated/new
 # - confirm before installing or updating pkgver (this is somewhat orthogonal to exiting when view return false since we may want to not view the files)
 # - cli
@@ -50,4 +50,5 @@ db.check_udpate / db.update
 #   install? (when not building a chroot, we already call sync_db, which will
 #   update db pacakges which are already installed, but not new packages =>
 #   need to call `tools.sync_db(db.repo_name, install: [self.name])`)
-# - global aur cache
+# - configure where to search for missing package (on a case by case basis)
+# - due to vercmp, we need to reset packages before pulling

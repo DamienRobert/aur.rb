@@ -418,6 +418,7 @@ module Archlinux
 				new_pkgs=install_list.slice(*packages)
 				u=get_updates(new_pkgs, verbose: verbose, obsolete: obsolete, ignore: ignore)
 				new=self.class.new(l.values).merge(new_pkgs)
+				new.chain_query(install_list)
 				# The updates or new packages may need new deps
 				SH.logger.info "# Checking dependencies of #{u.join(', ')}" if verbose
 				full=new.rget(*u)
@@ -453,7 +454,7 @@ module Archlinux
 		end
 
 		def chain_query(ext_query)
-			ext_query=ext_query.as_ext_query if ext_query.is_a?(PackageList)
+			ext_query=ext_query.to_ext_query if ext_query.is_a?(PackageList)
 			if @ext_query
 				orig_query=@ext_query
 				@ext_query = lambda do |*args, **opts|
@@ -471,8 +472,7 @@ module Archlinux
 		def as_ext_query(*queries, provides: false, full_pkgs: false)
 			r=self.resolve(*queries, provides: provides, fallback: false)
 			# puts "#{self.class}: #{queries} => #{r}"
-			# require 'pry'; binding.pry
-			l= full_pkgs ? @l : slice(*r.values)
+			l= full_pkgs ? @l : slice(*r.values.compact)
 			return r, l
 		end
 
@@ -484,6 +484,7 @@ module Archlinux
 		def initialize(*args)
 			super
 			@ext_query=method(:ext_query)
+			#@query_ignore=AurPackageList.official
 		end
 
 		def ext_query(*queries, **_opts)
@@ -513,6 +514,7 @@ module Archlinux
 			@select_existing=get_mode.delete(:existing)
 			@get_mode=get_mode
 			@ext_query=method(:ext_query)
+			#@query_ignore=AurPackageList.official
 		end
 
 		def ext_query(*queries, **opts)
@@ -532,6 +534,7 @@ module Archlinux
 			@aur_cache = AurCache.new(**opts)
 			@makepkg_cache = MakepkgCache.new(get_mode: {update: true, clone: true, pkgver: true, view: true}, **opts)
 			@ext_query=method(:ext_query)
+			#@query_ignore=AurPackageList.official
 		end
 
 		def ext_query(*queries, **opts)
