@@ -66,7 +66,7 @@ module Archlinux
 			end
 		end
 
-		def clone(url=self.url, logdir: nil)
+		def clone(url: self.url, logdir: nil)
 			if do_clone(url)
 				(logdir+"!#{@dir.basename}").on_ln_s(@dir.realpath) if logdir
 			else
@@ -89,6 +89,8 @@ module Archlinux
 			@env['PKGDEST']=db.dir.to_s if db
 		end
 
+		# should respond to clone, update
+		# and optionally done_view, done_build
 		def get_pkg
 			@get_pkg=@config[:default_get_class].new(@dir, url: name, config: @config)
 		end
@@ -189,7 +191,7 @@ module Archlinux
 			end
 			if view #view before calling pkgver
 				r=@config.view(@dir)
-				get_pkg.done_view if r
+				get_pkg.done_view if r and get_pkg.respond_to?(:done_view)
 			else
 				r=true
 			end
@@ -227,7 +229,7 @@ module Archlinux
 			default_opts+=@config.dig[:makepkg][:build_args]
 
 			success, _r=call(*args, method: :sh, default_opts: default_opts, env: @env, **opts)
-			get_pkg.done_build if success
+			get_pkg.done_build if success and get_pkg.respond_to?(:done_build)
 			success
 		end
 
@@ -332,16 +334,16 @@ module Archlinux
 			end
 		end
 
-		def get(*args, view: true, pkgver: false, **opts)
+		def get(*_args, view: true, pkgver: false, **opts)
 			Dir.mktmpdir("aur_view") do |d|
 				@l.values.each do |l|
-					l.get(*args, logdir: d, view: false, pkgver: false, **opts) #l.get does not take arguments
+					l.get(*_args, logdir: d, view: false, pkgver: false, **opts) #l.get does not take arguments, we put them here for arg/opt ruby confusion
 				end
 				if view
 					r=@config.view(d)
 					if r
 						@l.values.each do |l|
-							l.get_pkg.done_view
+							l.get_pkg.done_view if l.get_pkg.respond_to?(:done_view)
 						end
 					end
 				else

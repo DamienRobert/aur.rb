@@ -20,7 +20,7 @@ module Archlinux
 				file=Pathname.new(ENV["XDG_CONFIG_HOME"] || "#{ENV['HOME']}/.config") + file if file.relative?
 			end
 			file_config= file&.readable? ? file.read : '{}'
-			wrap=eval("Proc.new { |context| #{file_config} }")
+			wrap=eval("Proc.new { |config| #{file_config} }")
 			@opts=default_config.deep_merge(opts)
 			user_conf=wrap.call(self)
 			@opts.deep_merge!(user_conf) if user_conf.is_a?(Hash)
@@ -71,6 +71,11 @@ module Archlinux
 					active: true,
 				}
 			}
+		end
+
+		# packages to check
+		def default_packages
+			db.packages.merge(RepoPkgs.new(Repo.foreign_list, config: self).packages)
 		end
 
 		def get_config_file(name, type: :default)
@@ -137,15 +142,15 @@ module Archlinux
 			when DB
 				@db=name
 			when Pathname
-				@db=DB.new(name)
+				@db=DB.new(name, config: self)
 			when String
 				if DB.db_file?(name)
-					@db=DB.new(name)
+					@db=DB.new(name, config: self)
 				else
-					@db=DB.new(cachedir+".db"+"#{name}.db.tar.gz")
+					@db=DB.new(cachedir+".db"+"#{name}.db.tar.gz", config: self)
 				end
 			when true
-				@db=DB.new(cachedir+".db"+"aur.db.tar.gz")
+				@db=DB.new(cachedir+".db"+"aur.db.tar.gz", config: self)
 			when false, nil
 				@db=name #false for false, nil to reset
 			else

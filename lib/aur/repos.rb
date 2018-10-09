@@ -135,17 +135,17 @@ module Archlinux
 		attr_accessor :list, :config
 
 		def initialize(list, config: Archlinux.config)
-			@list=Pathname.new(list)
+			@list=list
 			@config=config
 		end
 
 		def infos
-			Repo.info(*list)
+			Repo.info(*@list)
 		end
 
 		def packages(refresh=false)
 			@packages=nil if refresh
-			@packages ||= @config.to_packages(self.class.info(*list))
+			@packages ||= @config.to_packages(infos)
 		end
 	end
 

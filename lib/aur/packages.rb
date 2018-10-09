@@ -435,6 +435,8 @@ module Archlinux
 			install(update: true, **opts, &b)
 		end
 
+		# the callback is passed to install? while the block is passed to
+		# @install_method
 		def install(*args, callback: nil, **opts, &b)
 			install_opts={}
 			%i(update ext_query verbose obsolete).each do |key|
@@ -588,11 +590,11 @@ module Archlinux
 			m
 		end
 
-		def do_install(*args, callback: nil, **opts)
+		def install(*args, callback: nil, **opts)
 			deps=[]
 			our_callback = lambda do |with_deps, orig|
 				deps=with_deps-orig
-				callback.call(orig, with_deps) if callback
+				callback.call(with_deps, orig) if callback
 				with_deps #we don't want to modify the installed packages
 			end
 			super(*args, callback: our_callback, **opts) do |m|
