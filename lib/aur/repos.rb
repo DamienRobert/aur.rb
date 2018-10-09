@@ -3,10 +3,11 @@ require 'aur/packages'
 require 'time'
 
 module Archlinux
-	# this old a repo name
+	# this hold a repo name
 	class Repo
 		extend CreateHelper
 
+		attr_accessor :repo, :config
 		def initialize(name, config: Archlinux.config)
 			@repo=name
 			@config=config
@@ -20,7 +21,10 @@ module Archlinux
 				else
 					"pacman -Slq #{@repo.shellescape}" #returns pkg
 				end
-			when :pacsift, :repo_name
+			when :repo_name
+				#like pacsift, but using pacman
+				list(mode: :name).map {|i| @repo+"/"+i}
+			when :pacsift
 				#this mode is prefered, so that if the same pkg is in different
 				#repo, than pacman_info returns the correct info
 				#pacsift understand the 'local' repo
@@ -111,12 +115,71 @@ module Archlinux
 		end
 
 		# Exemple: Archlinux::Repo.packages(* %x/pacman -Qqm/.split)
+		# Warning: this does not use config, so this is just for a convenience
+		# helper. Use RepoPkgs for install/config stuff
 		def self.packages(*packages)
 			PackageList.new(info(*packages))
 		end
 
+		def self.foreign_list
+			%x(pacman -Qqm).split
+		end
+
 		def self.foreign_packages
-			self.packages(* %x(pacman -Qqm).split)
+			packages(*foreign_list)
+		end
+	end
+
+	class RepoPkgs
+		extend CreateHelper
+		attr_accessor :list, :config
+
+		def initialize(list, config: Archlinux.config)
+			@list=Pathname.new(list)
+			@config=config
+		end
+
+		def infos
+			Repo.info(*list)
+		end
+
+		def packages(refresh=false)
+			@packages=nil if refresh
+			@packages ||= @config.to_packages(self.class.info(*list))
+		end
+	end
+
+	class LocalRepo
+		extend CreateHelper
+		attr_accessor :dir, :config
+
+		def initialize(dir="/var/lib/pacman/local", config: Archlinux.config)
+			@dir=Pathname.new(dir)
+			@config=config
+		end
+
+		def infos
+			#todo: this is essentially the same code as for db repo; factorize this?
+			@dir.glob("*/desc").each do |desc|
+				pkg={repo: :local}; mode=nil
+				desc.read.each_line do |l|
+					next if l.empty?
+					if (m=l.match(/^%([A-Z0-9]*)%$/))
+						mode=m[1].downcase.to_sym
+					else
+						l=l.to_i if mode==:csize or mode==:isize
+						l=Time.at(l.to_i) if mode==:builddate
+						Archlinux.add_to_hash(pkg, mode, l)
+					end
+				end
+				list << pkg
+			end
+			list
+		end
+
+		def packages(refresh=false)
+			@packages=nil if refresh
+			@packages ||= @config.to_packages(self.class.info(*list))
 		end
 	end
 
@@ -202,7 +265,7 @@ module Archlinux
 
 		def packages(refresh=false)
 			@packages=nil if refresh
-			@packages ||= PackageList.new(self.infos)
+			@packages ||= @config.to_packages(self.infos)
 		end
 
 		def sign(sign_name: :package, **opts)

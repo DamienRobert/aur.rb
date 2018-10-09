@@ -332,10 +332,10 @@ module Archlinux
 			end
 		end
 
-		def get(*_args, view: true, pkgver: false, **opts)
+		def get(*args, view: true, pkgver: false, **opts)
 			Dir.mktmpdir("aur_view") do |d|
 				@l.values.each do |l|
-					l.get(*_args, logdir: d, view: false, pkgver: false, **opts) #l.get does not take arguments
+					l.get(*args, logdir: d, view: false, pkgver: false, **opts) #l.get does not take arguments
 				end
 				if view
 					r=@config.view(d)
