@@ -267,13 +267,13 @@ module Archlinux
 					end
 				end
 				unless new_queries.empty?
-					SH.logger.send(log_fallback, "Trying fallback for packages: #{new_queries.keys.join(', ')}")
+					SH.log(log_fallback, "Trying fallback for packages: #{new_queries.keys.join(', ')}")
 					fallback_got=self.resolve(*new_queries.values, provides: provides, ext_query: ext_query, fallback: false, log_missing: :quiet, **opts)
 					got.merge!(fallback_got)
-					SH.logger.send(log_missing, "Missing packages: #{missed.map {|m| r=m; r<<" [fallback: #{fallback}]" if (fallback=fallback_got[new_queries[m]]); r}.join(', ')}") unless missed.empty?
+					SH.log(log_missing, "Missing packages: #{missed.map {|m| r=m; r<<" [fallback: #{fallback}]" if (fallback=fallback_got[new_queries[m]]); r}.join(', ')}") unless missed.empty?
 				end
 			else
-				SH.logger.send(log_missing, "Missing packages: #{missed.join(', ')}") unless missed.empty?
+				SH.log(log_missing, "Missing packages: #{missed.join(', ')}") unless missed.empty?
 			end
 			got
 		end
@@ -298,11 +298,11 @@ module Archlinux
 			self.class.new(l.slice(*get(*args)))
 		end
 
-		def children(node, mode=@children_mode, verbose: false, **opts, &b)
+		def children(node, mode=@children_mode, verbose: :quiet, **opts, &b)
 			deps=@l.fetch(node).dependencies(mode)
-			SH.logger.info "- #{node} => #{deps}" if verbose
+			SH.log(verbose, "- #{node} => #{deps}")
 			deps=get(*deps, **opts)
-			SH.logger.info " => #{deps}" if verbose
+			SH.log(verbose, " => #{deps}")
 			if b
 				deps.each(&b)
 			else
@@ -416,13 +416,13 @@ module Archlinux
 			packages+=self.names if update
 			if install_list
 				ignore -= packages.map {|p| Query.strip(p)}
-				SH.logger.info "# Checking packages #{packages.join(', ')}" if verbose
+				SH.log(verbose, "# Checking packages #{packages.join(', ')}")
 				new_pkgs=install_list.slice(*packages)
 				u=get_updates(new_pkgs, verbose: verbose, obsolete: obsolete, ignore: ignore)
 				new=self.class.new(l.values).merge(new_pkgs)
 				new.chain_query(install_list)
 				# The updates or new packages may need new deps
-				SH.logger.info "# Checking dependencies of #{u.join(', ')}" if verbose
+				SH.log(verbose, "# Checking dependencies of #{u.join(', ')}")
 				full=new.rget(*u)
 				# full_updates=get_updates(new.values_at(*full), verbose: verbose, obsolete: obsolete)
 				full_updates=get_updates(new.slice(*full), verbose: verbose, obsolete: obsolete, ignore: ignore)
