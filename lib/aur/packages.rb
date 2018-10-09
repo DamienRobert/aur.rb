@@ -199,6 +199,7 @@ module Archlinux
 			r
 		end
 
+		# select the most appropriate match
 		def find(q, **opts)
 			return q if @l.key?(q)
 			q=Query.create(q); pkg=q.name
@@ -216,7 +217,8 @@ module Archlinux
 			return nil
 		end
 
-		def query(q, provides: false, &b) #provides: do we check Provides?
+		# output all matches (does not use ext_query)
+		def query(q, provides: false) #provides: do we check Provides?
 			q=Query.new(q) unless q.is_a?(Query)
 			matches=[]; pkg=q.name
 			if @versions.key?(pkg)
@@ -510,19 +512,23 @@ module Archlinux
 
 	# cache MakepkgList and download PKGBUILD dynamically
 	class MakepkgCache < PackageList
+		attr_accessor :select_existing, :get_mode, :makepkg_list
 		def initialize(*args, get_mode: {}, **opts)
 			super(*args, **opts)
 			# puts "MakepkgCache called with options: #{[args, get_mode]}"
 			@select_existing=get_mode.delete(:existing)
 			@get_mode=get_mode
 			@ext_query=method(:ext_query)
+			@makepkg_list=MakepkgList.new([], config: @config)
 			#@query_ignore=AurPackageList.official
 		end
 
 		def ext_query(*queries, **opts)
 			pkgs=queries.map {|p| Query.strip(p)}
 			pkgs=MakepkgList.new(pkgs).values.select {|m| m.exist?} if @select_existing
-			MakepkgList.new(pkgs).packages(get: @get_mode).as_ext_query(*queries, full_pkgs: true, **opts)
+			m=MakepkgList.new(pkgs, config: @config)
+			@makepkg_list.merge(m.l.values)
+			m.packages(get: @get_mode).as_ext_query(*queries, full_pkgs: true, **opts)
 		end
 	end
 
@@ -556,7 +562,13 @@ module Archlinux
 		end
 
 		def install_method(l, **opts, &b)
-			m=MakepkgList.new(l.map {|p| Query.strip(p)}, config: @config)
+			striped=l.map {|p| Query.strip(p)}
+			# preserve the feature of the already downloaded makepkg lists
+			# in particular if we need custom get_pkg to get metadata, we keep
+			# them for installation
+			got=@makepkg_cache.makepkg_list.l.slice(*striped)
+			missing=striped-got.keys
+			m=MakepkgList.new(got.values+missing, config: @config)
 			m=b.call(m) if b #return false to prevent install
 			m.install(**opts) if m
 			m

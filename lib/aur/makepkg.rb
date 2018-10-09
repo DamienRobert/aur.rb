@@ -78,7 +78,7 @@ module Archlinux
 	class Makepkg
 		extend CreateHelper
 		attr_accessor :dir, :base, :env, :config, :asdeps
-		attr_writer get_pkg
+		attr_writer :get_pkg
 
 		def initialize(dir, config: Archlinux.config, env: {}, asdeps: false)
 			@dir=Pathname.new(dir)
@@ -309,10 +309,14 @@ module Archlinux
 			self.new(l, config: config)
 		end
 
-		def initialize(l, config: Archlinux.config, cache: config.cachedir)
+		def initialize(l=[], config: Archlinux.config, cache: config.cachedir)
 			@config=config
 			@cache=Pathname.new(cache)
 			@l={}
+			merge(l)
+		end
+
+		def merge(l)
 			l.each do |m|
 				unless m.is_a?(Makepkg)
 					m=Pathname.new(m)
