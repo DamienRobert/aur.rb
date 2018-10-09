@@ -489,6 +489,11 @@ module Archlinux
 			super
 			@ext_query=method(:ext_query)
 			#@query_ignore=AurPackageList.official
+			if @config[:aur_url]==GlobalAurCache.config[:aur_url]
+				@klass=GlobalAurCache
+			else
+				@klass=AurQueryCustom.new(config: @config)
+			end
 		end
 
 		def ext_query(*queries, **_opts)
@@ -501,8 +506,8 @@ module Archlinux
 			if pkgs.empty?
 				l=self.class.new([])
 			else
-				SH.logger.warn "! Calling aur for infos on: #{pkgs.join(', ')}"
-				l=AurQuery.packages(*pkgs)
+				SH.logger.warn "! AurCache: Calling aur for infos on: #{pkgs.join(', ')}"
+				l=@klass.packages(*pkgs)
 				@query_ignore += pkgs - l.names #these don't exist in aur
 			end
 			r=l.resolve(*queries, ext_query: false, fallback: false)
@@ -537,8 +542,6 @@ module Archlinux
 		attr_accessor :aur_cache, :makepkg_cache
 		def initialize(*args, **opts)
 			super
-			#TODO share the same AurCache
-			#or simply share the same AurMakepkgCache?
 			@aur_cache = AurCache.new(**opts)
 			@makepkg_cache = MakepkgCache.new(get_mode: {update: true, clone: true, pkgver: true, view: true}, **opts)
 			@ext_query=method(:ext_query)
@@ -567,8 +570,10 @@ module Archlinux
 			# in particular if we need custom get_pkg to get metadata, we keep
 			# them for installation
 			got=@makepkg_cache.makepkg_list.l.slice(*striped)
-			missing=striped-got.keys
-			m=MakepkgList.new(got.values+missing, config: @config)
+			# we need to preserver order here
+			#missing=striped-got.keys
+			#m=MakepkgList.new(got.values+missing, config: @config)
+			m=MakepkgList.new(striped.map {|i| got.key?(i) ? got[i] : i}, config: @config)
 			m=b.call(m) if b #return false to prevent install
 			m.install(**opts) if m
 			m

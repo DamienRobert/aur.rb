@@ -8,47 +8,55 @@ module Archlinux
 
 	AurQueryError=Class.new(ArchlinuxError)
 
-	module AurQuery
-		extend self
+	# aur query but with a local config parameter
+	class AurQueryCustom
+		extend CreateHelper
 		attr_accessor :config
-		# only used for :aur_url, cachedir and to_packages
-		@config=Archlinux.config
+
+		def initialize(config: AurQuery.config)
+			@config=config
+		end
+
+		def packages(*pkgs)
+			@config.to_packages(infos(*pkgs))
+		end
 
 		# AurQuery.query(type: "info", arg: pacaur)
 		# AurQuery.query(type: "info", :"arg[]" => %w(cower pacaur))
 		# AurQuery.query(type: "search", by: "name", arg: "aur")
 		#  by  name (search by package name only)
-  	#      *name-desc* (search by package name and description)
-  	#      maintainer (search by package maintainer)
-  	#      depends (search for packages that depend on keywords)
-  	#      makedepends (search for packages that makedepend on keywords)
-  	#      optdepends (search for packages that optdepend on keywords)
-  	#      checkdepends (search for packages that checkdepend on keywords)
-  	# => search result:
-  	#  {"ID"=>514909,
-  	#  "Name"=>"pacaur",
-  	#  "PackageBaseID"=>49145,
-  	#  "PackageBase"=>"pacaur",
-  	#  "Version"=>"4.7.90-1",
-  	#  "Description"=>"An AUR helper that minimizes user interaction",
-  	#  "URL"=>"https://github.com/rmarquis/pacaur",
-  	#  "NumVotes"=>1107,
-  	#  "Popularity"=>7.382043,
-  	#  "OutOfDate"=>nil,
-  	#  "Maintainer"=>"Spyhawk",
-  	#  "FirstSubmitted"=>1305666963,
-  	#  "LastModified"=>1527690065,
-  	#  "URLPath"=>"/cgit/aur.git/snapshot/pacaur.tar.gz"},
-  	# => info result adds:
-  	#  "Depends"=>["cower", "expac", "sudo", "git"],
-  	#  "MakeDepends"=>["perl"],
-  	#  "License"=>["ISC"],
-  	#  "Keywords"=>["AUR", "helper", "wrapper"]}]
+		#			 *name-desc* (search by package name and description)
+		#			 maintainer (search by package maintainer)
+		#			 depends (search for packages that depend on keywords)
+		#			 makedepends (search for packages that makedepend on keywords)
+		#			 optdepends (search for packages that optdepend on keywords)
+		#			 checkdepends (search for packages that checkdepend on keywords)
+		# => search result:
+		#  {"ID"=>514909,
+		#  "Name"=>"pacaur",
+		#  "PackageBaseID"=>49145,
+		#  "PackageBase"=>"pacaur",
+		#  "Version"=>"4.7.90-1",
+		#  "Description"=>"An AUR helper that minimizes user interaction",
+		#  "URL"=>"https://github.com/rmarquis/pacaur",
+		#  "NumVotes"=>1107,
+		#  "Popularity"=>7.382043,
+		#  "OutOfDate"=>nil,
+		#  "Maintainer"=>"Spyhawk",
+		#  "FirstSubmitted"=>1305666963,
+		#  "LastModified"=>1527690065,
+		#  "URLPath"=>"/cgit/aur.git/snapshot/pacaur.tar.gz"},
+		# => info result adds:
+		#  "Depends"=>["cower", "expac", "sudo", "git"],
+		#  "MakeDepends"=>["perl"],
+		#  "License"=>["ISC"],
+		#  "Keywords"=>["AUR", "helper", "wrapper"]}]
 
 		def query(h, url: @config[:aur_url])
 			uri=URI("#{url}/rpc/")
 			params = {v:5}.merge(h)
 			uri.query = URI.encode_www_form(params)
+			SH.logger.warn "! AurQuery: new query '#{uri}'"
 			res = Net::HTTP.get_response(uri)
 			if res.is_a?(Net::HTTPSuccess)
 				r= res.body 
@@ -88,10 +96,6 @@ module Archlinux
 		def info(pkg)
 			r={type: "info", arg: pkg}
 			self.query(r).first
-		end
-
-		def packages(*pkgs)
-			@config.to_packages(infos(*pkgs))
 		end
 
 		def pkglist(type="packages", delay: 3600, query: :auto, cache: @config.cachedir) #type=pkgbase
@@ -134,25 +138,16 @@ module Archlinux
 		end
 	end
 
-	# aur query but with a local config parameter
-	class AurQueryCustom
-		include AurQuery
-		extend CreateHelper
+	AurQuery=AurQueryCustom.new(config: Archlinux.config)
 
-		def initialize(config: AurQuery.config)
-			@config=config
+	class AurQueryCache < AurQueryCustom
+
+		attr_accessor :search_cache, :info_cache
+		def initialize(*args)
+			super
+			@search_cache={}
+			@info_cache={}
 		end
-
-		def packages(*pkgs)
-			@config.to_packages(infos(*pkgs))
-		end
-	end
-
-	module GlobalAurCache
-		include AurQuery
-		extend self
-		@search_cache={}
-		@info_cache={}
 
 		def search(arg, by: nil)
 			r={type: "search", arg: arg}
@@ -175,7 +170,9 @@ module Archlinux
 			pkgs.each do |name|
 				@info_cache[name]||=nil #missing packages
 			end
-			@info_cache.values_at(*pkgs).compact
+			@info_cache.values_at(*got, *pkgs).compact
 		end
 	end
+
+	GlobalAurCache = AurQueryCache.new(config: AurQuery.config)
 end
