@@ -11,6 +11,7 @@ module Archlinux
 	module AurQuery
 		extend self
 		attr_accessor :config
+		# only used for :aur_url, cachedir and to_packages
 		@config=Archlinux.config
 
 		# AurQuery.query(type: "info", arg: pacaur)
@@ -44,8 +45,8 @@ module Archlinux
   	#  "License"=>["ISC"],
   	#  "Keywords"=>["AUR", "helper", "wrapper"]}]
 
-		def query(h)
-			uri=URI("#{@config[:aur_url]}/rpc/")
+		def query(h, url: @config[:aur_url])
+			uri=URI("#{url}/rpc/")
 			params = {v:5}.merge(h)
 			uri.query = URI.encode_www_form(params)
 			res = Net::HTTP.get_response(uri)
@@ -89,13 +90,12 @@ module Archlinux
 			self.query(r).first
 		end
 
-		def packages(*pkgs, klass: AurPackageList)
-			klass.new(infos(*pkgs))
+		def packages(*pkgs)
+			@config.to_packages(infos(*pkgs))
 		end
 
-		def pkglist(type="packages", delay: 3600, query: :auto) #type=pkgbase
+		def pkglist(type="packages", delay: 3600, query: :auto, cache: @config.cachedir) #type=pkgbase
 			require 'zlib'
-			cache=self.cachedir
 			file=cache+"#{type}.gz"
 			in_epoch=nil
 			if file.exist?
@@ -136,6 +136,7 @@ module Archlinux
 
 	# aur query but with a local config parameter
 	class AurQueryCustom
+		include AurQuery
 		extend CreateHelper
 
 		def initialize(config: AurQuery.config)
@@ -144,6 +145,37 @@ module Archlinux
 
 		def packages(*pkgs)
 			@config.to_packages(infos(*pkgs))
+		end
+	end
+
+	module GlobalAurCache
+		include AurQuery
+		extend self
+		@search_cache={}
+		@info_cache={}
+
+		def search(arg, by: nil)
+			r={type: "search", arg: arg}
+			r[:by]=by if by
+			if @search_cache.key?(r)
+				@search_cache[r]
+			else
+				res=super
+				res
+			end
+		end
+
+		def infos(*pkgs, slice: 150)
+			got = pkgs & @info_cache.keys
+			pkgs = pkgs - got
+			res=super(*pkgs, slice: slice)
+			res.each do |pkg|
+				@info_cache[pkg["Name"]]=pkg
+			end
+			pkgs.each do |name|
+				@info_cache[name]||=nil #missing packages
+			end
+			@info_cache.values_at(*pkgs).compact
 		end
 	end
 end
