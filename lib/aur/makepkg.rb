@@ -78,6 +78,7 @@ module Archlinux
 	class Makepkg
 		extend CreateHelper
 		attr_accessor :dir, :base, :env, :config, :asdeps
+		attr_writer get_pkg
 
 		def initialize(dir, config: Archlinux.config, env: {}, asdeps: false)
 			@dir=Pathname.new(dir)
@@ -92,7 +93,7 @@ module Archlinux
 		# should respond to clone, update
 		# and optionally done_view, done_build
 		def get_pkg
-			@get_pkg=@config[:default_get_class].new(@dir, url: name, config: @config)
+			@get_pkg||=@config[:default_get_class].new(@dir, url: name, config: @config)
 		end
 
 		def name

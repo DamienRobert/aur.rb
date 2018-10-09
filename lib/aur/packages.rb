@@ -130,7 +130,7 @@ module Archlinux
 			merge(list)
 		end
 
-		# the names without the versions
+		# the names without the versions. Use self.keys to get the name=version
 		def names
 			@versions.keys
 		end
@@ -554,6 +554,13 @@ module Archlinux
 			r2, l2=@aur_cache.as_ext_query(*(missing+aur), **opts)
 			return r1.merge(r2), l1.merge(l2)
 		end
+
+		def install_method(l, **opts, &b)
+			m=MakepkgList.new(l.map {|p| Query.strip(p)}, config: @config)
+			m=b.call(m) if b #return false to prevent install
+			m.install(**opts) if m
+			m
+		end
 	end
 
 	class AurPackageList < PackageList
@@ -581,13 +588,16 @@ module Archlinux
 			self.class.official
 		end
 
-		def install_method(l, **opts)
-			m=MakepkgList.new(l.map {|p| Query.strip(p)}, config: @config)
-			if block_given?
-				m=yield m #return false to prevent install
+		def install_method(l, **opts, &b)
+			if @install_list&.respond_to?(:install_method)
+				@install_list.install_method(l, **opts, &b)
+			else
+				# fallback to consider everything from aur
+				m=MakepkgList.new(l.map {|p| Query.strip(p)}, config: @config)
+				m=b.call(m) if b #return false to prevent install
+				m.install(**opts) if m
+				m
 			end
-			m.install(**opts) if m
-			m
 		end
 
 		def install(*args, callback: nil, **opts)

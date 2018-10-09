@@ -75,7 +75,13 @@ module Archlinux
 
 		# packages to check
 		def default_packages
-			db.packages.merge(RepoPkgs.new(Repo.foreign_list, config: self).packages)
+			if @default_packages.nil?
+				default=db.packages.merge(RepoPkgs.new(Repo.foreign_list, config: self).packages)
+				default=yield default if block_given?
+				@default_packages=to_packages(default.l)
+			else
+				@default_packages
+			end
 		end
 
 		def get_config_file(name, type: :default)
