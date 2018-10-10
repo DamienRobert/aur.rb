@@ -49,7 +49,12 @@ module Archlinux
 		end
 
 		def do_update
-			suc, _r=call("pull")
+			# we need to hard reset, because vercmp may have changed our PKGBUILD
+			# todo: only reset when there is an update?
+			# lets try with a theirs merge strat
+			# call("reset", "--hard")
+			# suc, _r=call("pull")
+			suc, _r=call("pull", "-X", "theirs")
 			suc
 		end
 
@@ -123,7 +128,7 @@ module Archlinux
 		end
 
 		def call(*args, **opts)
-			tools=@config.makepkg_config #this set up pacman and makepkg config files
+			tools=@config.local_devtools #this set up pacman and makepkg config files
 			env=opts.delete(:env) || {}
 			opts[:method]||=:run_simple
 			@dir.chdir do
@@ -237,7 +242,7 @@ module Archlinux
 
 		def mkarchroot
 			args=@config.dig(:chroot, :packages) || ["base-devel"]
-			@config.devtools.mkarchroot(*args)
+			@config.chroot_devtools.mkarchroot(*args)
 		end
 
 		def makechroot(*args, sign: @config&.use_sign?(:package), force: false, **opts)
@@ -247,7 +252,7 @@ module Archlinux
 					return false
 				end
 			end
-			devtools=@config.devtools
+			devtools=@config.chroot_devtools
 			success=false
 			@dir.chdir do
 				success=devtools.makechrootpkg(*args, env: @env, **opts)
@@ -272,7 +277,7 @@ module Archlinux
 			if success and (db=@config.db)
 				success=add_to_db(db)
 				if !chroot #sync db
-					tools=@config.makepkg_config
+					tools=@config.local_devtools
 					tools.sync_db(db.repo_name)
 				end
 			end

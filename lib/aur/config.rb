@@ -100,7 +100,7 @@ module Archlinux
 			cache
 		end
 
-		def setup_pacman_conf(conf)
+		private def setup_pacman_conf(conf)
 			pacman=PacmanConf.create(conf, config: self)
 			aur=self.db(false)
 			if aur and !pacman[:repos].include?(aur.repo_name)
@@ -117,8 +117,8 @@ module Archlinux
 			end
 		end
 
-		def devtools
-			unless @devtools_config
+		def chroot_devtools
+			unless @chroot_devtools
 				require 'uri'
 				# here we need the raw value, since this will be used by pacstrap
 				# which calls pacman --root; so the inferred path for DBPath and so
@@ -129,18 +129,18 @@ module Archlinux
 				my_pacman=default_pacman_conf
 				devtools_pacman[:repos].merge!(my_pacman.non_official_repos)
 				setup_pacman_conf(devtools_pacman)
-				@devtools_config = Devtools.new(pacman_conf: devtools_pacman, config: self)
+				@chroot_devtools = Devtools.new(pacman_conf: devtools_pacman, config: self)
 			end
-			@devtools_config
+			@chroot_devtools
 		end
 
-		def makepkg_config
-			unless @makepkg_config
+		def local_devtools
+			unless @local_devtools
 				makepkg_pacman=get_config_file(:pacman, type: :local)
 				setup_pacman_conf(makepkg_pacman)
-				@makepkg_config = Devtools.new(pacman_conf: makepkg_pacman, config: self)
+				@local_devtools = Devtools.new(pacman_conf: makepkg_pacman, config: self)
 			end
-			@makepkg_config
+			@local_devtools
 		end
 
 		def db=(name)
@@ -247,6 +247,13 @@ module Archlinux
 
 		def install_list
 			@install_list ||= @opts[:default_install_list_class].new(config: self)
+		end
+
+		def post_install(*pkgs)
+			if (db=self.db)
+				tools=local_devtools
+				tools.sync_db(db.repo_name, install: pkgs)
+			end
 		end
 	end
 

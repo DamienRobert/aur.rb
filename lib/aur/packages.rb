@@ -386,7 +386,8 @@ module Archlinux
 		end
 
 		def select_updates(r)
-			r.select {|_k,v| v[:op]==:upgrade or v[:op]==:install}.map {|_k, v| v[:out_pkg]}
+			up=r.select {|_k,v| v[:op]==:upgrade or v[:op]==:install}
+			return up.map {|_k, v| v[:out_pkg]}, up
 		end
 
 		def get_updates(l, verbose: true, obsolete: true, ignore: @ignore)
@@ -431,16 +432,20 @@ module Archlinux
 				ignore -= packages.map {|p| Query.strip(p)}
 				SH.log(verbose, "# Checking packages #{packages.join(', ')}")
 				new_pkgs=install_list.slice(*packages)
-				u=get_updates(new_pkgs, verbose: verbose, obsolete: obsolete, ignore: ignore)
+				u, u_infos=get_updates(new_pkgs, verbose: verbose, obsolete: obsolete, ignore: ignore)
+				# todo: update this when we have a better preference mechanism
+				# (then we will need to put @official in the install package class)
 				new=self.class.new(l.values).merge(new_pkgs)
 				new.chain_query(install_list)
 				# The updates or new packages may need new deps
 				SH.log(verbose, "# Checking dependencies of #{u.join(', ')}")
 				full=new.rget(*u)
 				# full_updates=get_updates(new.values_at(*full), verbose: verbose, obsolete: obsolete)
-				full_updates=get_updates(new.slice(*full), verbose: verbose, obsolete: obsolete, ignore: ignore)
-				full_updates=yield full_updates, u if block_given?
-				full_updates
+				full_updates, full_infos=get_updates(new.slice(*full), verbose: verbose, obsolete: obsolete, ignore: ignore)
+				deps_infos=full_infos.slice(*(full_updates-u))
+				infos={top_pkgs: u_infos, dep_pkgs: deps_infos, all_pkgs: full_infos}
+				full_updates, infos=yield full_updates, infos if block_given?
+				return full_updates, infos
 			else
 				SH.logger.warn "External install list not defined"
 			end
@@ -457,11 +462,11 @@ module Archlinux
 			%i(update ext_query verbose obsolete).each do |key|
 				opts.key?(key) && install_opts[key]=opts.delete(key)
 			end
-			l=install?(*args, **install_opts, &callback) #return false in the callback to prevent install
+			l, l_info=install?(*args, **install_opts, &callback) #return false in the callback to prevent install
 			if @install_method
-				@install_method.call(l, **opts, &b) unless !l or l.empty?
+				@install_method.call(l, pkgs_info: l_info, **opts, &b) unless !l or l.empty?
 			else
-				l
+				return l, l_info
 			end
 		end
 
@@ -495,8 +500,39 @@ module Archlinux
 
 	end
 
+	# class that support installation (ie define install_method)
+	class InstallPackageList < PackageList
+		def initialize(*args, **opts)
+			super
+			@install_method=method(:install_method)
+		end
+
+		def get_makepkg_list(l)
+			MakepkgList.new(l.map {|p| Query.strip(p)}, config: @config)
+		end
+
+		def install_method(l, **opts, &b)
+			# if we are used as a source, fall back to the upstream method
+			if @install_list&.respond_to?(:install_method)
+				@install_list.install_method(l, **opts, &b)
+			else
+				info=opts[:pkgs_info]
+				deps=info[:dep_pkgs].map {|_k,v| v[:out_pkg]}
+				tops=info[:top_pkgs].map {|_k,v| v[:out_pkg]}
+				m=get_makepkg_list(l)
+				#if we cache the makepkg, we need to update both deps and tops
+				#in case we did a previous install
+				deps.each { |dep| m[Query.strip(dep)]&.asdeps=true }
+				tops.each { |dep| m[Query.strip(dep)]&.asdeps=false }
+				m=b.call(m) if b #return false to prevent install
+				m.install(**opts) if m
+				m
+			end
+		end
+	end
+
 	# cache aur queries
-	class AurCache < PackageList
+	class AurCache < InstallPackageList
 
 		def initialize(*args)
 			super
@@ -529,7 +565,7 @@ module Archlinux
 	end
 
 	# cache MakepkgList and download PKGBUILD dynamically
-	class MakepkgCache < PackageList
+	class MakepkgCache < InstallPackageList
 		attr_accessor :select_existing, :get_mode, :makepkg_list
 		def initialize(*args, get_mode: {}, **opts)
 			super(*args, **opts)
@@ -541,17 +577,23 @@ module Archlinux
 			#@query_ignore=AurPackageList.official
 		end
 
-		def ext_query(*queries, **opts)
-			pkgs=queries.map {|p| Query.strip(p)}
-			pkgs=MakepkgList.new(pkgs).values.select {|m| m.exist?} if @select_existing
-			m=MakepkgList.new(pkgs, config: @config)
+		def get_makepkg_list(l)
+			pkgs=l.map {|p| Query.strip(p)}
+			# use the cache
+			m=MakepkgList.new(pkgs.map {|pkg| @makepkg_list.key?(pkg) ? @makepkg_list[pkg] : pkg}, config: @config)
 			@makepkg_list.merge(m.l.values)
+			m
+		end
+
+		def ext_query(*queries, **opts)
+			m=get_makepkg_list(queries)
+			m.keep_if {|_k,v| v.exist?} if @select_existing
 			m.packages(get: @get_mode).as_ext_query(*queries, full_pkgs: true, **opts)
 		end
 	end
 
 	# combine Aur and Makepkg caches
-	class AurMakepkgCache < PackageList
+	class AurMakepkgCache < InstallPackageList
 		attr_accessor :aur_cache, :makepkg_cache
 		def initialize(*args, **opts)
 			super
@@ -577,27 +619,18 @@ module Archlinux
 			return r1.merge(r2), l1.merge(l2)
 		end
 
-		def install_method(l, **opts, &b)
-			striped=l.map {|p| Query.strip(p)}
-			# preserve the feature of the already downloaded makepkg lists
-			# in particular if we need custom get_pkg to get metadata, we keep
-			# them for installation
-			got=@makepkg_cache.makepkg_list.l.slice(*striped)
-			# we need to preserver order here
-			#missing=striped-got.keys
-			#m=MakepkgList.new(got.values+missing, config: @config)
-			m=MakepkgList.new(striped.map {|i| got.key?(i) ? got[i] : i}, config: @config)
-			m=b.call(m) if b #return false to prevent install
-			m.install(**opts) if m
-			m
+		def get_makepkg_list(l)
+			got=l.select {|pkg| @makepkg_cache.key?(pkg)}
+			got_m=@makepkg_cache.get_makepkg_list(got)
+			rest=@aur_cache.get_makepkg_list(l-got)
+			l.map do |name|
+				strip=Query.strip(name)
+				got_m.key?(strip) ? got_m[strip] : rest[strip]
+			end
 		end
 	end
 
-	class AurPackageList < PackageList
-		# def self.cache
-		# 	@cache ||= AurCache.new([])
-		# end
-
+	class AurPackageList < InstallPackageList
 		def self.official
 			@official||=%w(core extra community).map {|repo| Repo.new(repo).list(mode: :pacman)}.flatten.compact
 		end
@@ -617,32 +650,5 @@ module Archlinux
 		def official
 			self.class.official
 		end
-
-		def install_method(l, **opts, &b)
-			if @install_list&.respond_to?(:install_method)
-				@install_list.install_method(l, **opts, &b)
-			else
-				# fallback to consider everything from aur
-				m=MakepkgList.new(l.map {|p| Query.strip(p)}, config: @config)
-				m=b.call(m) if b #return false to prevent install
-				m.install(**opts) if m
-				m
-			end
-		end
-
-		def install(*args, callback: nil, **opts)
-			deps=[]
-			our_callback = lambda do |with_deps, orig|
-				deps=with_deps-orig
-				callback.call(with_deps, orig) if callback
-				with_deps #we don't want to modify the installed packages
-			end
-			super(*args, callback: our_callback, **opts) do |m|
-				deps.each { |dep| m[Query.strip(dep)]&.asdeps=true }
-				m=yield m if block_given?
-				m
-			end
-		end
-
 	end
 end
