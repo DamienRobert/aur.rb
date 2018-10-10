@@ -22,7 +22,9 @@ module Archlinux
 
 		attr_accessor :file, :config
 		def initialize(file, config: Archlinux.config)
-			@file=Pathname.new(file)
+			@orig_file=Pathname.new(file)
+			# todo: absolute path
+			@file=@orig_file.exist? ? @orig_file.realpath : @orig_file
 			@config=config
 		end
 
@@ -121,7 +123,9 @@ module Archlinux
 		# end
 
 		def dir
-			@file.dirname.realpath
+			# we memoize this because if we get called again in a dir.chdir
+			# call, then the realpath will fail
+			@dir ||= @file.dirname.realpath
 		end
 
 		def call(*args)
@@ -229,6 +233,7 @@ module Archlinux
 
 		def check_update(other=dir_packages)
 			up=self.packages.check_updates(other)
+			yield up if block_given?
 			refresh=up.select {|_k, u| u[:op]==:upgrade or u[:op]==:downgrade}
 			add=up.select {|_k, u| u[:op]==:install}
 			remove=up.select {|_k, u| u[:op]==:obsolete}

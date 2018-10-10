@@ -16,6 +16,11 @@ module Archlinux
 			opt.on("--[no-]color", "Colorize output", "Default to #{parser.data[:color]}") do |v|
 				SimpleColor.enabled=v
 			end
+
+			#opt.on("--[no-]db=[dbname]", "Specify database", "Default to #{@config.db}") do |v|
+			opt.on("--[no-]db=[dbname]", "Specify database", "Default to #{@config.db}") do |v|
+				@config.db=v
+			end
 		end
 
 		parser.main_options do |opt|
@@ -107,6 +112,32 @@ Launch pacman with a custom config file which makes the db accessible.
 			pacman_cmd.action do |*args|
 				devtools=Archlinux.config.local_devtools
 				devtools.pacman(*args, sudo: @config.sudo)
+			end
+		end
+
+		parser.add_command('db') do |db_cmd|
+			db_cmd.add_command('update') do |cmd|
+				cmd.takes_commands(false)
+				cmd.short_desc("Update the db")
+				cmd.long_desc(<<-EOS)
+Update the db according to the packages present in its folder
+				EOS
+				cmd.options do |opt|
+					opt.on("-c", "--[no-]check", "Only check updates") do |v|
+						cmd.data[:check]=v
+					end
+				end
+				cmd.action do ||
+					db=Archlinux.config.db
+					if cmd.data[:check]
+						#SH.logger.info db.check_update.to_s
+						db.check_update do |c|
+							db.packages.show_updates(c, obsolete: true)
+						end
+					else
+						db.update
+					end
+				end
 			end
 		end
 
