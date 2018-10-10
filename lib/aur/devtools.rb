@@ -150,7 +150,7 @@ module Archlinux
 				args << "PACMAN_OPTS+=--config=#{file.shellescape}"
 				default_opts += ["--config", file] if key==:makepkg_conf
 			end
-			opts[:method]||=:sh
+			opts[:method]||=run
 			@config.launch(:makepkg, *args, default_opts: default_opts, **opts, &b)
 		end
 
@@ -197,7 +197,7 @@ module Archlinux
 					self.nspawn(*nspawn, root: root, **opts, &b)
 				end
 			else
-				@config.launch(:mkarchroot, root, *args, default_opts: default_opts, escape: true, **opts,&b)
+				@config.launch(:mkarchroot, root, *args, default_opts: default_opts, sudo: @config.sudo, **opts,&b)
 			end
 		end
 
@@ -229,7 +229,7 @@ module Archlinux
 			end
 		end
 
-		def sync_db(*names, install: [])
+		def sync_db(*names, install: [], **pacman_opts)
 			conf=PacmanConf.create(@opts[:pacman_conf])
 			new_conf={options: conf[:options], repos: {}}
 			repos=conf[:repos]
@@ -246,7 +246,7 @@ module Archlinux
 				else
 					args=['-Syu']
 					args+=install
-					return pacman[*args, sudo: @config.sudo]
+					return pacman[*args, sudo: @config.sudo, **pacman_opts]
 				end
 			end
 		end

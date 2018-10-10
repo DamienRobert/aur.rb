@@ -384,7 +384,7 @@ module Archlinux
 
 		def mkarchroot
 			args=@config.dig(:chroot, :packages) || ["base-devel"]
-			@config.devtools.mkarchroot(*args)
+			@config.chroot_devtools.mkarchroot(*args)
 		end
 
 		def list

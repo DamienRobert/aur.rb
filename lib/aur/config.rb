@@ -101,6 +101,7 @@ module Archlinux
 			cache
 		end
 
+		# add our default db to the list of repos
 		private def setup_pacman_conf(conf)
 			pacman=PacmanConf.create(conf, config: self)
 			aur=self.db(false)
@@ -129,7 +130,7 @@ module Archlinux
 				# file://...$repo...$arch get their real values
 				my_pacman=default_pacman_conf
 				devtools_pacman[:repos].merge!(my_pacman.non_official_repos)
-				setup_pacman_conf(devtools_pacman)
+				devtools_pacman=setup_pacman_conf(devtools_pacman)
 				@chroot_devtools = Devtools.new(pacman_conf: devtools_pacman, config: self)
 			end
 			@chroot_devtools
@@ -138,7 +139,7 @@ module Archlinux
 		def local_devtools
 			unless @local_devtools
 				makepkg_pacman=get_config_file(:pacman, type: :local)
-				setup_pacman_conf(makepkg_pacman)
+				makepkg_pacman=setup_pacman_conf(makepkg_pacman)
 				@local_devtools = Devtools.new(pacman_conf: makepkg_pacman, config: self)
 			end
 			@local_devtools
@@ -182,19 +183,21 @@ module Archlinux
 			self.db=nil
 		end
 
+		# note: since 'true' is frozen, we cannot extend it and keep a
+		# @sudo_loop_thread. Moreover we only want one sudo loop active, so we
+		# will call it ouselves
 		def sudo(arg=true)
-			sudo=arg
 			if dig(:sudo_loop, :active)
 				opts=dig(:sudo_loop).clone
 				opts.delete(:active)
-				sudo.extend(SH::SudoLoop.configure(**opts))
+				self.extend(SH::SudoLoop.configure(**opts))
+				self.sudo_loop
 			end
-			sudo
+			arg
 		end
 
 		def stop_sudo_loop
-			sudo=self.sudo
-			sudo&.stop_sudo_loop if sudo&.respond_to?(:stop_sudo_loop)
+			stop_sudo_loop if respond_to?(:stop_sudo_loop)
 		end
 
 		def to_packages(l=[])

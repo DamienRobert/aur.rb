@@ -196,6 +196,7 @@ module Archlinux
 		def verify_sign_files
 			@config&.verify_sign(*files)
 		end
+		# check the inline signatures
 		def verify_sign_pkgs(*pkgs)
 			packages.get_packages(*pkgs).map do |pkg|
 				pgpsign=pkg[:pgpsig]

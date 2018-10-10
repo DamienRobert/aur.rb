@@ -92,6 +92,19 @@ Install of update packages
 			end
 		end
 
+		parser.add_command('pacman') do |pacman_cmd|
+			pacman_cmd.takes_commands(false)
+			pacman_cmd.short_desc("Launch pacman")
+			pacman_cmd.long_desc(<<-EOS)
+Launch pacman with a custom config file which makes the db accessible.
+			EOS
+			pacman_cmd.argument_desc(args: "pacman arguments")
+			pacman_cmd.action do |*args|
+				devtools=Archlinux.config.local_devtools
+				devtools.pacman(*args)
+			end
+		end
+
 		def parser.parse(*args, &b)
 			super(*args) do |lvl, cmd|
 				if self.data[:debug]=="pry"

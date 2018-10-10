@@ -212,7 +212,7 @@ module Archlinux
 			r
 		end
 
-		# select the most appropriate match
+		# select the most appropriate match (does not use ext_query)
 		def find(q, **opts)
 			return q if @l.key?(q)
 			q=Query.create(q); pkg=q.name
@@ -438,12 +438,11 @@ module Archlinux
 				new=self.class.new(l.values).merge(new_pkgs)
 				new.chain_query(install_list)
 				# The updates or new packages may need new deps
-				SH.log(verbose, "# Checking dependencies of #{u.join(', ')}")
+				SH.log(verbose, "# Checking dependencies of #{u.join(', ')}") unless u.empty?
 				full=new.rget(*u)
 				# full_updates=get_updates(new.values_at(*full), verbose: verbose, obsolete: obsolete)
 				full_updates, full_infos=get_updates(new.slice(*full), verbose: verbose, obsolete: obsolete, ignore: ignore)
-				deps_infos=full_infos.slice(*(full_updates-u))
-				infos={top_pkgs: u_infos, dep_pkgs: deps_infos, all_pkgs: full_infos}
+				infos={top_pkgs: u_infos, all_pkgs: full_infos}
 				full_updates, infos=yield full_updates, infos if block_given?
 				return full_updates, infos
 			else
@@ -516,19 +515,18 @@ module Archlinux
 			if @install_list&.respond_to?(:install_method)
 				@install_list.install_method(l, **opts, &b)
 			else
-				info=opts[:pkgs_info]
-				deps=info[:dep_pkgs].map {|_k,v| v[:out_pkg]}
-				tops=info[:top_pkgs].map {|_k,v| v[:out_pkg]}
+				info=opts.delete(:pkgs_info)
+				tops=info[:top_pkgs].keys
+				deps=info[:all_pkgs].keys-tops
 				m=get_makepkg_list(l)
 				#if we cache the makepkg, we need to update both deps and tops
 				#in case we did a previous install
-				require 'pry'; binding.pry
 				deps.each { |dep| m[Query.strip(dep)]&.asdeps=true }
 				tops.each { |dep| m[Query.strip(dep)]&.asdeps=false }
 				m=b.call(m) if b #return false to prevent install
 				success=m.install(**opts)
 				# call post_install hook if all packages succeeded
-				@config.post_install(l, makepkg_list: m, **opts) if success.reduce(:&)
+				@config.post_install(l, makepkg_list: m, **opts) if success&.reduce(:&)
 				m
 			end
 		end
