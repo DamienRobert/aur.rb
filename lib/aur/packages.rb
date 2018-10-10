@@ -522,12 +522,13 @@ module Archlinux
 				m=get_makepkg_list(l)
 				#if we cache the makepkg, we need to update both deps and tops
 				#in case we did a previous install
+				require 'pry'; binding.pry
 				deps.each { |dep| m[Query.strip(dep)]&.asdeps=true }
 				tops.each { |dep| m[Query.strip(dep)]&.asdeps=false }
 				m=b.call(m) if b #return false to prevent install
 				success=m.install(**opts)
 				# call post_install hook if all packages succeeded
-				@config.post_install(l, **opts) if success.reduce(:&)
+				@config.post_install(l, makepkg_list: m, **opts) if success.reduce(:&)
 				m
 			end
 		end

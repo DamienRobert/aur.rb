@@ -19,7 +19,7 @@ module Archlinux
 				file=Pathname.new(file)
 				file=Pathname.new(ENV["XDG_CONFIG_HOME"] || "#{ENV['HOME']}/.config") + file if file.relative?
 			end
-			file_config= file&.readable? ? file.read : (SH.logger.error "Error: Config file #{file} unreadable"; '{}')
+			file_config= file&.readable? ? file.read : (SH.logger.error "Error: Config file '#{file}' unreadable" unless file.nil?; '{}')
 			wrap=eval("Proc.new { |config| #{file_config} }")
 			@opts=default_config.deep_merge(opts)
 			user_conf=wrap.call(self)
@@ -42,7 +42,8 @@ module Archlinux
 					packages: ['base-devel'], #the packages that are installed in the chroto
 				},
 				default_packages_class: AurPackageList,
-				default_install_list_class: AurMakepkgCache,
+				# default_install_list_class: AurMakepkgCache,
+				default_install_list_class: AurCache,
 				default_get_class: Git, #we use git to fetch PKGBUILD from aur
 				sign: true, #can be made more atomic, cf the sign method
 				config_files: {
