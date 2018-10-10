@@ -249,10 +249,15 @@ module Archlinux
 			@install_list ||= @opts[:default_install_list_class].new(config: self)
 		end
 
-		def post_install(*pkgs)
+		def post_install(pkgs, **_opts)
 			if (db=self.db)
 				tools=local_devtools
-				tools.sync_db(db.repo_name, install: pkgs)
+				# info=opts[:pkgs_info]
+				# to_install=info[:all_pkgs].select {|_k,v| v[:op]==:install}.
+				# 	map {|_k,v| v[:out_pkg]}
+				# tools.sync_db(db.repo_name, install: to_install)
+				# Let's just install anything and let pacman handle it
+				tools.sync_db(db.repo_name, install: %w(--needed) + pkgs)
 			end
 		end
 	end

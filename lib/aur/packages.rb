@@ -525,7 +525,9 @@ module Archlinux
 				deps.each { |dep| m[Query.strip(dep)]&.asdeps=true }
 				tops.each { |dep| m[Query.strip(dep)]&.asdeps=false }
 				m=b.call(m) if b #return false to prevent install
-				m.install(**opts) if m
+				success=m.install(**opts)
+				# call post_install hook if all packages succeeded
+				@config.post_install(l, **opts) if success.reduce(:&)
 				m
 			end
 		end
