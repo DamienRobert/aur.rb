@@ -390,10 +390,16 @@ module Archlinux
 			return up.map {|_k, v| v[:out_pkg]}, up
 		end
 
-		def get_updates(l, verbose: true, obsolete: true, ignore: @ignore)
+		def get_updates(l, verbose: true, obsolete: true, ignore: @ignore, rebuild: false)
 			c=check_updates(l, ignore: ignore)
 			show_updates(c, obsolete: obsolete) if verbose
-			select_updates(c)
+			if rebuild
+				# keep all packages
+				to_build=c.select {|_k,v| v[:out_pkg]}
+				return to_build.map {|_k, v| v[:out_pkg]}, to_build
+			else
+				select_updates(c)
+			end
 		end
 
 		#take the result of check_updates and pretty print them
@@ -426,13 +432,13 @@ module Archlinux
 
 		# take a list of packages to install, return the new or updated
 		# packages to install with their dependencies
-		def install?(*packages, update: false, install_list: @install_list, verbose: true, obsolete: true, ignore: @ignore)
+		def install?(*packages, update: false, install_list: @install_list, verbose: true, obsolete: true, ignore: @ignore, rebuild: false)
 			packages+=self.names if update
 			if install_list
 				ignore -= packages.map {|p| Query.strip(p)}
 				SH.log(verbose, "# Checking packages #{packages.join(', ')}")
 				new_pkgs=install_list.slice(*packages)
-				u, u_infos=get_updates(new_pkgs, verbose: verbose, obsolete: obsolete, ignore: ignore)
+				u, u_infos=get_updates(new_pkgs, verbose: verbose, obsolete: obsolete, ignore: ignore, rebuild: rebuild)
 				# todo: update this when we have a better preference mechanism
 				# (then we will need to put @official in the install package class)
 				new=self.class.new(l.values).merge(new_pkgs)
@@ -441,7 +447,7 @@ module Archlinux
 				SH.log(verbose, "# Checking dependencies of #{u.join(', ')}") unless u.empty?
 				full=new.rget(*u)
 				# full_updates=get_updates(new.values_at(*full), verbose: verbose, obsolete: obsolete)
-				full_updates, full_infos=get_updates(new.slice(*full), verbose: verbose, obsolete: obsolete, ignore: ignore)
+				full_updates, full_infos=get_updates(new.slice(*full), verbose: verbose, obsolete: obsolete, ignore: ignore, rebuild: rebuild=="full" ? true : false)
 				infos={top_pkgs: u_infos, all_pkgs: full_infos}
 				full_updates, infos=yield full_updates, infos if block_given?
 				return full_updates, infos
@@ -458,7 +464,8 @@ module Archlinux
 		# @install_method
 		def install(*args, callback: nil, **opts, &b)
 			install_opts={}
-			%i(update ext_query verbose obsolete).each do |key|
+			keys=method(:install?).parameters.select {|arg| arg[0]==:key}.map {|arg| arg[1]}
+			keys.each do |key|
 				opts.key?(key) && install_opts[key]=opts.delete(key)
 			end
 			l, l_info=install?(*args, **install_opts, &callback) #return false in the callback to prevent install
@@ -515,14 +522,16 @@ module Archlinux
 			if @install_list&.respond_to?(:install_method)
 				@install_list.install_method(l, **opts, &b)
 			else
-				info=opts.delete(:pkgs_info)
-				tops=info[:top_pkgs].keys
-				deps=info[:all_pkgs].keys-tops
 				m=get_makepkg_list(l)
-				#if we cache the makepkg, we need to update both deps and tops
-				#in case we did a previous install
-				deps.each { |dep| m[Query.strip(dep)]&.asdeps=true }
-				tops.each { |dep| m[Query.strip(dep)]&.asdeps=false }
+				info=opts.delete(:pkgs_info)
+				if info
+					tops=info[:top_pkgs].keys
+					deps=info[:all_pkgs].keys-tops
+					#if we cache the makepkg, we need to update both deps and tops
+					#in case we did a previous install
+					deps.each { |dep| m[Query.strip(dep)]&.asdeps=true }
+					tops.each { |dep| m[Query.strip(dep)]&.asdeps=false }
+				end
 				m=b.call(m) if b #return false to prevent install
 				success=m.install(**opts)
 				# call post_install hook if all packages succeeded

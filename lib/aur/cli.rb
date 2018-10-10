@@ -81,13 +81,18 @@ Install of update packages
 					install_cmd.data[:check]=v
 				end
 			end
+			install_cmd.options do |opt|
+				opt.on("--[no-]rebuild=[mode]", "Rebuild given packages", "with --rebuild=full also rebuild their deps") do |v|
+					install_cmd.data[:rebuild]=v
+				end
+			end
 			install_cmd.argument_desc(packages: "packages names")
 			install_cmd.action do |*packages|
 				aur=Archlinux.config.default_packages
 				if install_cmd.data[:check]
-					aur.install?(*packages, update: install_cmd.data[:update])
+					aur.install?(*packages, update: install_cmd.data[:update], rebuild: install_cmd.data[:rebuild])
 				else
-					aur.install(*packages, update: install_cmd.data[:update])
+					aur.install(*packages, update: install_cmd.data[:update], rebuild: install_cmd.data[:rebuild])
 				end
 			end
 		end
@@ -101,7 +106,7 @@ Launch pacman with a custom config file which makes the db accessible.
 			pacman_cmd.argument_desc(args: "pacman arguments")
 			pacman_cmd.action do |*args|
 				devtools=Archlinux.config.local_devtools
-				devtools.pacman(*args)
+				devtools.pacman(*args, sudo: @config.sudo)
 			end
 		end
 

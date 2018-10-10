@@ -42,13 +42,7 @@ db.check_udpate / db.update
 # - --devel switch?
 # - view only when updated/new
 # - confirm before installing or updating pkgver (this is somewhat orthogonal to exiting when view return false since we may want to not view the files)
-# - cli
+# - more commands for cli
 # - tests
-# - aur.install only update the db, add a command to also do a local pacman
-#   install? (when not building a chroot, we already call sync_db, which will
-#   update db pacakges which are already installed, but not new packages =>
-#   need to call `tools.sync_db(db.repo_name, install: [self.name])`)
-# => more generally: post_install callback
-# - configure where to search for missing package (on a case by case basis)
 # - due to vercmp, we need to reset packages before pulling
 # - preference to decide which :provides to choose
