@@ -183,9 +183,22 @@ module Archlinux
 					pkg=Query.strip(p)
 					@provides_for[pkg]||={}
 					@provides_for[pkg][p]=name #todo: do we pass the name or the full pkg?
+					#todo: we need a list here
 				end
 			end
 			self
+		end
+
+		# return all packages that provides for pkg
+		# this is more complicated than @provides_for[pkg]
+		# because if b provides a and c provides a, then pacman assumes that b
+		# provides c
+		def all_provides_for(pkg)
+			provides=l.fetch(pkg,{}).fetch(:provides,[]).map {|q| Query.strip(q)}
+			provided=([Query.strip(pkg)]+provides).flat_map do |prov|
+				@provides_for.fetch(prov,{}).values.map {|v| Version.strip(v)}
+			end.uniq
+			provided
 		end
 
 		def latest

@@ -19,7 +19,7 @@ module Archlinux
 				file=Pathname.new(file)
 				file=Pathname.new(ENV["XDG_CONFIG_HOME"] || "#{ENV['HOME']}/.config") + file if file.relative?
 			end
-			file_config= file&.readable? ? file.read : '{}'
+			file_config= file&.readable? ? file.read : (SH.logger.error "Error: Config file #{file} unreadable"; '{}')
 			wrap=eval("Proc.new { |config| #{file_config} }")
 			@opts=default_config.deep_merge(opts)
 			user_conf=wrap.call(self)
