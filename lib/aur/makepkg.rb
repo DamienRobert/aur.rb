@@ -235,7 +235,8 @@ module Archlinux
 			default_opts << "--asdeps" if asdeps
 			default_opts+=@config.dig[:makepkg][:build_args]
 
-			success, _r=call(*args, method: :sh, default_opts: default_opts, env: @env, **opts)
+			# error=13 means the package is already built, we consider that a success
+			success, _r=call(*args, method: :sh, default_opts: default_opts, env: @env, expected: 13, **opts)
 			get_pkg.done_build if success and get_pkg.respond_to?(:done_build)
 			success
 		end
@@ -249,7 +250,7 @@ module Archlinux
 			unless force
 				if list.all? {|f| f.exist?}
 					SH.logger.info "Skipping #{@dir} since it is already built (use force=true to override)"
-					return false
+					return true #consider this a success build
 				end
 			end
 			devtools=@config.chroot_devtools
