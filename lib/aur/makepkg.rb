@@ -2,6 +2,7 @@ require 'aur/config'
 require 'aur/devtools'
 require 'aur/packages'
 require 'uri'
+require 'tmpdir'
 
 module Archlinux
 	# this is a get class; it should respond to update and clone
