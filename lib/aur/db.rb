@@ -23,8 +23,7 @@ module Archlinux
 		attr_accessor :file, :config
 		def initialize(file, config: Archlinux.config)
 			@orig_file=Pathname.new(file)
-			# todo: absolute path
-			@file=@orig_file.exist? ? @orig_file.realpath : @orig_file
+			@file=@orig_file.realdirpath rescue @orig_file.abs_path
 			@config=config
 		end
 
@@ -123,9 +122,10 @@ module Archlinux
 		# end
 
 		def dir
-			# we memoize this because if we get called again in a dir.chdir
-			# call, then the realpath will fail
-			@dir ||= @file.dirname.realpath
+			# # we memoize this because if we get called again in a dir.chdir
+			# # call, then the realpath will fail
+			# @dir ||= @file.dirname.realpath
+			@file.dirname
 		end
 
 		def call(*args)
