@@ -45,4 +45,12 @@ db.check_udpate / db.update
 # - more commands for cli
 # - tests
 # - due to vercmp, we need to reset packages before pulling
+#   => use stash?
 # - preference to decide which :provides to choose
+# - in `official` we need to also list packages provided by them, eg
+# libarchive provides libarchive.so (but libarchive.so does not exist
+# separately, but eg aurutils-git requires it)
+# - when using AurMakepkgCache, missing packages info are repeated several
+# times
+# - using tsort in rget won't do a breadth first search, which would reduce
+# the number of aur queries. With tsort packages are queried one by one.
