@@ -201,9 +201,7 @@ module Archlinux
 		end
 
 		def to_packages(l=[])
-			klass=@opts[:default_packages_class]
-			klass=Archlinux.const_get(klass) if klass.is_a?(Symbol)
-			klass.new(l)
+			Archlinux.create_class(@opts[:default_packages_class],l)
 		end
 
 		#:package, :db
@@ -250,7 +248,7 @@ module Archlinux
 		end
 
 		def install_list
-			@install_list ||= @opts[:default_install_list_class].new(config: self)
+			@install_list ||= Archlinux.create_class(@opts[:default_install_list_class], config: self)
 		end
 
 		def post_install(pkgs, **_opts)

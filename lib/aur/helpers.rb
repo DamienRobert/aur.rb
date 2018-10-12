@@ -26,6 +26,15 @@ module Archlinux
 		end
 	end
 
+	def self.create_class(klass, *parameters, &b)
+		klass=Archlinux.const_get(klass) if klass.is_a?(Symbol)
+		if klass.is_a?(Proc)
+			klass.call(*parameters, &b)
+		else
+			klass.new(*parameters, &b)
+		end
+	end
+
 	module CreateHelper
 		def create(v, config: Archlinux.config)
 			v.is_a?(self) ? v : self.new(v, config: config)
