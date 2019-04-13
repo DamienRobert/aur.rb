@@ -53,8 +53,10 @@ module Archlinux
 			# todo: only reset when there is an update?
 			# lets try with a theirs merge strat
 			# call("reset", "--hard")
-			# suc, _r=call("pull")
-			suc, _r=call("pull", "-X", "theirs")
+			# -> still does not work: error: Your local changes to the following files would be overwritten by merge: PKGBUILD
+			## suc, _r=call("pull", "-X", "theirs")
+			call("reset", "--hard")
+			suc, _r=call("pull")
 			suc
 		end
 
