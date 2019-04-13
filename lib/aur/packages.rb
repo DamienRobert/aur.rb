@@ -529,6 +529,7 @@ module Archlinux
 					deps=info[:all_pkgs].keys-tops
 					#if we cache the makepkg, we need to update both deps and tops
 					#in case we did a previous install
+					# require 'pry'; binding.pry
 					deps.each { |dep| m[Query.strip(dep)]&.asdeps=true }
 					tops.each { |dep| m[Query.strip(dep)]&.asdeps=false }
 				end
@@ -633,10 +634,10 @@ module Archlinux
 			got=l.select {|pkg| @makepkg_cache.key?(pkg)}
 			got_m=@makepkg_cache.get_makepkg_list(got)
 			rest=@aur_cache.get_makepkg_list(l-got)
-			l.map do |name|
+			MakepkgList.new(l.map do |name|
 				strip=Query.strip(name)
 				got_m.key?(strip) ? got_m[strip] : rest[strip]
-			end
+			end, config: @config)
 		end
 	end
 
