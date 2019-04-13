@@ -91,8 +91,16 @@ Install of update packages
 					install_cmd.data[:rebuild]=v
 				end
 			end
+			install_cmd.options do |opt|
+				opt.on("--[no-]devel", "Also check/update devel packages") do |v|
+					install_cmd.data[:devel]=v
+				end
+			end
 			install_cmd.argument_desc(packages: "packages names")
 			install_cmd.action do |*packages|
+				if install_cmd.data[:devel]
+					Archlinux.config[:default_install_list_class]=AurMakepkgCache
+				end
 				aur=Archlinux.config.default_packages
 				if install_cmd.data[:check]
 					aur.install?(*packages, update: install_cmd.data[:update], rebuild: install_cmd.data[:rebuild])
