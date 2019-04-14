@@ -46,7 +46,7 @@ module Archlinux
 		def create
 			mkpath
 			unless @file.exist?
-				call(:'repo-add', path.shellescape)
+				call(:'repo-add', path)
 			end
 			self
 		end
@@ -164,7 +164,7 @@ module Archlinux
 				unless existing_files.empty?
 					sign_files = @config&.use_sign?(:package)
 					PackageFiles.new(*existing_files, config: @config).sign(sign_name: sign_files) if sign_files
-					call(cmd, path.shellescape, *existing_files, default_opts: default_opts, **opts)
+					call(cmd, path, *existing_files, default_opts: default_opts, **opts)
 				end
 			end
 		end
@@ -245,14 +245,29 @@ module Archlinux
 		def update(other=dir_packages)
 			r=check_update(other)
 			add(*(r[:refresh].merge(r[:add])).map do |_k,v|
-				pkg=other[v[:out_pkg]]
-				file = pkg.file || Pathname.new(pkg[:repo])
-				file.shellescape
+				other[v[:out_pkg]].path
 			end)
 			# remove(*(r[:remove].map {|_k,v| packages[v[:in_pkg]].file.shellescape}))
 			remove(*(r[:remove].map {|_k,v| Query.strip(v[:in_pkg])}))
 			@packages=nil #we need to refresh the list
 			r
+		end
+
+		# move/copy files to db and add them
+		# if update==true, only add more recent packages
+		# pkgs should be a PackageFiles
+		def add_to_db(pkgs, update: true, op: :cp)
+			pkgs=PackageFiles.create(pkgs)
+			if update
+				r=check_update(pkgs)
+				pkgs=r.select {|_k, u| u[:op]==:upgrade or u[:op]==:install}.map do |_k,v|
+					other[v[:out_pkg]].path
+				end
+			else
+				pkgs=pkgs.map {|_k,v| v.path }
+			end
+			cp_pkgs=db.move_to_db(*pkgs, op: op)
+			db.add(*cp_pkgs)
 		end
 	end
 end
