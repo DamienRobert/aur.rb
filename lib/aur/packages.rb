@@ -100,6 +100,10 @@ module Archlinux
 			@props[:filename] && Pathname.new(@props[:filename])
 		end
 
+		def path
+			file || Pathname.new(@props[:repo])
+		end
+
 		def same?(other)
 			# @props.slice(*(@props.keys - [:repo])) == other.props.slice(*(other.props.keys - [:repo]))
 			slice=%i(version description depends provides opt_depends replaces conflicts)
@@ -536,7 +540,18 @@ module Archlinux
 				m=b.call(m) if b #return false to prevent install
 				success=m.install(**opts)
 				# call post_install hook if all packages succeeded
-				@config.post_install(l, makepkg_list: m, **opts) if success&.reduce(:&)
+				if success
+					#&.reduce(:&)
+					if success == true
+						@config.post_install(l, makepkg_list: m, **opts)
+					else #this should be a list of success and failures
+						l_success=[]
+						l.each_with_index do |pkg,i|
+							l_success << pkg if success[i]
+						end
+						@config.post_install(l_success, makepkg_list: m, **opts)
+					end
+				end
 				m
 			end
 		end

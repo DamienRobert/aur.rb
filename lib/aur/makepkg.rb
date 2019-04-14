@@ -368,9 +368,8 @@ module Archlinux
 					@l.values.map do |l| #all?
 						l.get_source if l.pkgver?
 					end
-				else
-					return r
 				end
+				return r
 			end
 		end
 
