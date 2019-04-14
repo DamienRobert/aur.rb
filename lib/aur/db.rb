@@ -179,12 +179,16 @@ module Archlinux
 			@packages||=@config.to_packages(list)
 		end
 
-		def dir_packages
-			PackageFiles.from_dir(dir, config: @config).packages
+		def dir_packages(packages: true)
+			pkg_files=PackageFiles.from_dir(dir, config: @config)
+			pkg_files=pkg_files.packages if packages
+			pkg_files
 		end
 
-		def package_files
-			PackageFiles.new(*files, config: @config).packages
+		def package_files(packages: true)
+			pkg_files=PackageFiles.new(*files, config: @config)
+			pkg_files=pkg_files.packages if packages
+			pkg_files
 		end
 
 		# sign the files in the db (return the list of signed file, by default
