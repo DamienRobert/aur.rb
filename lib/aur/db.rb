@@ -257,17 +257,17 @@ module Archlinux
 		# if update==true, only add more recent packages
 		# pkgs should be a PackageFiles
 		def add_to_db(pkgs, update: true, op: :cp)
-			pkgs=PackageFiles.create(pkgs)
 			if update
-				r=check_update(pkgs)
-				pkgs=r.select {|_k, u| u[:op]==:upgrade or u[:op]==:install}.map do |_k,v|
-					other[v[:out_pkg]].path
+				pkgs=PackageFiles.create(pkgs).packages unless pkgs.is_a? PackageList
+				up=self.packages.check_updates(pkgs)
+				pkgs=up.select {|_k, u| u[:op]==:upgrade or u[:op]==:install}.map do |_k,v|
+					pkgs[v[:out_pkg]].path
 				end
 			else
-				pkgs=pkgs.map {|_k,v| v.path }
+				pkgs=pkgs.map {|_k,v| v.path } if pkgs.is_a?(PackageList)
 			end
-			cp_pkgs=db.move_to_db(*pkgs, op: op)
-			db.add(*cp_pkgs)
+			cp_pkgs=move_to_db(*pkgs, op: op)
+			add(*cp_pkgs)
 		end
 	end
 end

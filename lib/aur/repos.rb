@@ -189,6 +189,7 @@ module Archlinux
 
 		attr_accessor :files
 		def initialize(*files, config: Archlinux.config)
+			files=files.flatten #in case we are used with create
 			@files=files.map {|file| Pathname.new(file)}
 			@config=config
 		end
