@@ -273,6 +273,26 @@ module Archlinux
 			@config&.sign(*@files, sign_name: sign_name, **opts)
 		end
 
+		def clean(dry_run: true)
+			to_clean=[]
+			latest=packages.latest.values
+			packages.each do |_name, pkg|
+				to_clean << pkg unless latest.include?(pkg)
+			end
+			if block_given?
+				to_clean = yield to_clean
+			end
+			unless dry_run
+				to_clean.each do |f| 
+					p=f.path
+					p.rm if p.exist?
+					sig=Pathname.new(p.to_s+".sig")
+					sig.rm if sig.exist?
+				end
+			end
+			to_clean
+		end
+
 		def self.from_dir(dir, config: Archlinux.config)
 			dir=Pathname.new(dir)
 			list=dir.glob('*.pkg.*').map do |g| 
