@@ -271,7 +271,7 @@ module Archlinux
 		end
 
 		def build(*makepkg_args, mkarchroot: false, chroot: @config.dig(:chroot, :active), **opts)
-			SH.logger.info "=> Building #{@dir}"
+			SH.logger.info "=> Building #{@dir}".color(:bold, :blue)
 			if chroot
 				self.mkarchroot if mkarchroot
 				success, _r=makechroot(*makepkg_args, **opts)
