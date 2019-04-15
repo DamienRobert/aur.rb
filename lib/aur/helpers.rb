@@ -41,4 +41,10 @@ module Archlinux
 		end
 	end
 
+	## Not used: we modify Config#pretty_print directly
+	# module PPHelper
+	# 	def pretty_print_instance_variables
+	# 		instance_variables.reject {|n| n==:@config}.sort
+	# 	end
+	# end
 end

@@ -13,6 +13,20 @@ module Archlinux
 		Archlinux.delegate_h(self, :@opts)
 		include SH::ShConfig
 
+		def pretty_print(pp)
+			# pp.object_address_group(self)
+			pp.object_address_group(self) {}
+		end
+
+		#since we hide the pp value of config, allow to inspect it
+		def export
+			r={}
+			instance_variables.sort.each do |var|
+				r[var]=instance_variable_get(var)
+			end
+			r
+		end
+
 		# pass nil to prevent loading a config file
 		def initialize(file="aur.rb", **opts)
 			if file
