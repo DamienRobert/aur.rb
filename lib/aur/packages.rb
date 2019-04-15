@@ -454,6 +454,10 @@ module Archlinux
 				# full_updates=get_updates(new.values_at(*full), verbose: verbose, obsolete: obsolete)
 				SH.log(verbose, "New packages:")
 				full_updates, full_infos=get_updates(new.slice(*full), verbose: verbose, obsolete: obsolete, ignore: ignore, rebuild: rebuild=="full" ? true : false)
+				if rebuild and rebuild != "full" #we need to merge back u
+					full_updates |=u
+					full_infos.merge!(u_infos)
+				end
 				infos={top_pkgs: u_infos, all_pkgs: full_infos}
 				full_updates, infos=yield full_updates, infos if block_given?
 				return full_updates, infos
