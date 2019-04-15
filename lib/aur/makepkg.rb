@@ -83,8 +83,19 @@ module Archlinux
 		end
 	end
 
+	module MakepkgCommon
+		#functions common to Makepkg and MakepkgList
+
+		def add_to_db(db=@config.db, force_sign: false)
+			SH.logger.warn "Bad database #{db}" unless db.is_a?(DB)
+			db.add(*list.select {|l| r=l.exist?; SH.logger.warn "Package #{l} not built, not adding to the db #{db.repo_name}" unless r; r}, force_sign: force_sign)
+		end
+
+	end
+
 	class Makepkg
 		extend CreateHelper
+		include MakepkgCommon
 		attr_accessor :dir, :base, :env, :config, :asdeps
 		attr_writer :get_pkg
 
@@ -265,11 +276,6 @@ module Archlinux
 			success
 		end
 
-		def add_to_db(db=@config.db)
-			SH.logger.warn "Bad database #{db}" unless db.is_a?(DB)
-			db.add(*list.select {|l| r=l.exist?; SH.logger.warn "Package #{l} not built, not adding to the db #{db.repo_name}" unless r; r})
-		end
-
 		def build(*makepkg_args, mkarchroot: false, chroot: @config.dig(:chroot, :active), **opts)
 			SH.logger.info "=> Building #{@dir}".color(:bold, :blue)
 			if chroot
@@ -279,7 +285,9 @@ module Archlinux
 				success, _r=make(*makepkg_args, **opts)
 			end
 			if success and (db=@config.db)
-				success=add_to_db(db)
+				force_sign=false
+				force_sign = true if opts[:rebuild] #when rebuilding we need to regenerate the signature
+				success=add_to_db(db, force_sign: force_sign)
 				if !chroot #sync db
 					tools=@config.local_devtools
 					tools.sync_db(db.repo_name)
@@ -305,6 +313,7 @@ module Archlinux
 
 	class MakepkgList
 		extend CreateHelper
+		include MakepkgCommon
 		Archlinux.delegate_h(self, :@l)
 		attr_accessor :config, :cache, :l
 
@@ -392,11 +401,6 @@ module Archlinux
 
 		def list
 			@l.values.flat_map { |l| l.list }
-		end
-
-		def add_to_db(db=@config.db)
-			SH.logger.warn "Bad database #{db}" unless db.is_a?(DB)
-			db.add(*list.select {|l| l.exist?})
 		end
 
 		def build(*args, chroot: @config.dig(:chroot, :active), **opts)

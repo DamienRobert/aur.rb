@@ -224,9 +224,13 @@ module Archlinux
 					SH.logger.error "Invalid file to sign #{file}"
 					next
 				end
-				if !force and Pathname.new(sig).file?
-					SH.logger.debug "Signature #{sig} already exits, skipping"
-					next
+				if Pathname.new(sig).file?
+					if force
+						SH.logger.debug "Signature #{sig} already exits, overwriting"
+					else
+						SH.logger.debug "Signature #{sig} already exits, skipping"
+						next
+					end
 				end
 				args=['--detach-sign', '--no-armor']
 				args+=['-u', sign_name] if sign_name.is_a?(String)
