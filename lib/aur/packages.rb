@@ -285,12 +285,12 @@ module Archlinux
 				end
 				unless new_queries.empty?
 					SH.log(log_fallback, "Trying fallback for packages: #{new_queries.keys.join(', ')}")
-					fallback_got=self.resolve(*new_queries.values, provides: provides, ext_query: ext_query, fallback: false, log_missing: :quiet, **opts)
+					fallback_got=self.resolve(*new_queries.values, provides: provides, ext_query: ext_query, fallback: false, log_missing: :debug3, **opts)
 					got.merge!(fallback_got)
-					SH.log(log_missing, "Missing packages: #{missed.map {|m| r=m; r<<" [fallback: #{fallback}]" if (fallback=fallback_got[new_queries[m]]); r}.join(', ')}") unless missed.empty?
+					SH.log(log_missing, "Warning! Missing packages: #{missed.map {|m| r=m; r<<" [fallback: #{fallback}]" if (fallback=fallback_got[new_queries[m]]); r}.join(', ')}") unless missed.empty?
 				end
 			else
-				SH.log(log_missing, "Missing packages: #{missed.join(', ')}") unless missed.empty?
+				SH.log(log_missing, "Warning! Missing packages: #{missed.join(', ')}") unless missed.empty?
 			end
 			got
 		end
@@ -315,7 +315,7 @@ module Archlinux
 			self.class.new(l.slice(*get(*args)))
 		end
 
-		def children(node, mode=@children_mode, verbose: :quiet, **opts, &b)
+		def children(node, mode=@children_mode, verbose: :debug3, **opts, &b)
 			deps=@l.fetch(node).dependencies(mode)
 			SH.log(verbose, "- #{node} => #{deps}")
 			deps=get(*deps, **opts)
@@ -396,7 +396,7 @@ module Archlinux
 
 		def get_updates(l, verbose: true, obsolete: true, ignore: @ignore, rebuild: false)
 			c=check_updates(l, ignore: ignore)
-			show_updates(c, obsolete: obsolete) if verbose
+			show_updates(c, obsolete: obsolete, log_level: verbose) if verbose
 			if rebuild
 				# keep all packages
 				to_build=c.select {|_k,v| v[:out_pkg]}
@@ -407,7 +407,7 @@ module Archlinux
 		end
 
 		#take the result of check_updates and pretty print them
-		def show_updates(r, obsolete: true)
+		def show_updates(r, obsolete: true, log_level: "info")
 			require 'simplecolor'
 			r.each do |k,v|
 				next if v[:op]==:equal
@@ -417,7 +417,8 @@ module Archlinux
 				op = "->"; op="<-" if v[:op]==:downgrade
 				extra=""
 				extra=" [#{v[:op]}]" if v[:op]!=:upgrade
-				SH.logger.info SimpleColor.color("  -> #{k}: #{vin} #{op} #{vout}#{extra}", :black)
+
+				SH.log(log_level, SimpleColor.color("  -> #{k}: #{vin} #{op} #{vout}#{extra}", :black))
 			end
 		end
 
@@ -436,21 +437,22 @@ module Archlinux
 
 		# take a list of packages to install, return the new or updated
 		# packages to install with their dependencies
-		def install?(*packages, update: false, install_list: @install_list, verbose: true, obsolete: true, ignore: @ignore, rebuild: false)
+		def install?(*packages, update: false, install_list: @install_list, verbose: true, verbose2: "debug", obsolete: true, ignore: @ignore, rebuild: false)
 			packages+=self.names if update
 			if install_list
 				ignore -= packages.map {|p| Query.strip(p)}
-				SH.log(verbose, "# Checking packages #{packages.join(', ')}")
+				SH.log(verbose2, "# Checking packages #{packages.join(', ')}")
 				new_pkgs=install_list.slice(*packages)
-				u, u_infos=get_updates(new_pkgs, verbose: verbose, obsolete: obsolete, ignore: ignore, rebuild: rebuild)
+				u, u_infos=get_updates(new_pkgs, verbose: verbose2, obsolete: obsolete, ignore: ignore, rebuild: rebuild)
 				# todo: update this when we have a better preference mechanism
 				# (then we will need to put @official in the install package class)
 				new=self.class.new(l.values).merge(new_pkgs)
 				new.chain_query(install_list)
 				# The updates or new packages may need new deps
-				SH.log(verbose, "# Checking dependencies of #{u.join(', ')}") unless u.empty?
+				SH.log(verbose2, "# Checking dependencies of #{u.join(', ')}") unless u.empty?
 				full=new.rget(*u)
 				# full_updates=get_updates(new.values_at(*full), verbose: verbose, obsolete: obsolete)
+				SH.log(verbose, "New packages:")
 				full_updates, full_infos=get_updates(new.slice(*full), verbose: verbose, obsolete: obsolete, ignore: ignore, rebuild: rebuild=="full" ? true : false)
 				infos={top_pkgs: u_infos, all_pkgs: full_infos}
 				full_updates, infos=yield full_updates, infos if block_given?
@@ -581,7 +583,7 @@ module Archlinux
 			if pkgs.empty?
 				l=self.class.new([])
 			else
-				SH.logger.debug "! AurCache: Calling aur for infos on: #{pkgs.join(', ')}"
+				SH.logger.debug1 "! AurCache: Calling aur for infos on: #{pkgs.join(', ')}"
 				l=@klass.packages(*pkgs)
 				@query_ignore += pkgs - l.names #these don't exist in aur
 			end

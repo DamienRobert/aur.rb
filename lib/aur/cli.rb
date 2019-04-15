@@ -161,6 +161,9 @@ Update the db according to the packages present in its folder
 				elsif self.data[:debug]
 					SH.debug(self.data[:debug])
 				end
+				if self.data[:loglevel]
+					SH.logger.cli_level(self.data[:loglevel])
+				end
 				b.call(lvl, cmd) if b
 			end
 		end

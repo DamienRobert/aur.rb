@@ -141,11 +141,11 @@ module Archlinux
 			dir=self.dir
 			files.map do |f|
 				if f.dirname == dir
-					SH.logger.debug "! #{f} already exists in #{dir}"
+					SH.logger.debug1 "! #{f} already exists in #{dir}"
 					f
 				else
 					new=dir+f.basename
-					SH.logger.debug "-> #{op} #{f} to #{new}"
+					SH.logger.debug1 "-> #{op} #{f} to #{new}"
 					f.send(op, new)
 					new
 				end
