@@ -272,11 +272,13 @@ module Archlinux
 			@dir.chdir do
 				success=devtools.makechrootpkg(*args, env: @env, **opts)
 			end
-			self.sign(sign_name: sign) if sign and success
+			## signing should be done by 'build'
+			# self.sign(sign_name: sign) if sign and success
 			success
 		end
 
 		def build(*makepkg_args, mkarchroot: false, chroot: @config.dig(:chroot, :active), **opts)
+			force_sign = opts.delete(:rebuild) #when rebuilding we need to regenerate the signature
 			SH.logger.info "=> Building #{@dir}".color(:bold, :blue)
 			if chroot
 				self.mkarchroot if mkarchroot
@@ -285,8 +287,6 @@ module Archlinux
 				success, _r=make(*makepkg_args, **opts)
 			end
 			if success and (db=@config.db)
-				force_sign=false
-				force_sign = true if opts[:rebuild] #when rebuilding we need to regenerate the signature
 				success=add_to_db(db, force_sign: force_sign)
 				if !chroot #sync db
 					tools=@config.local_devtools

@@ -2,6 +2,7 @@ require 'cmdparse'
 require 'aur/version'
 require 'simplecolor'
 SimpleColor.mix_in_string
+SH::Sh.default_sh_options[:log_level_exectue]="debug3" #was debug
 
 module Archlinux
 	def self.cli
