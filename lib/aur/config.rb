@@ -163,7 +163,7 @@ module Archlinux
 			when false, nil
 				@db=name #false for false, nil to reset
 			else
-				SH.logger.warn("Database name #{name} not suitable")
+				SH.logger.warn("Database name #{name} not suitable, fallback to default")
 				@db=nil
 			end
 			# reset these so the pacman_conf gets the correct db name

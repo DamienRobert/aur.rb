@@ -25,8 +25,12 @@ module Archlinux
 
 		parser.main_options do |opt|
 			parser.data[:debug]=@config.fetch(:debug, false)
-			opt.on("--debug", "=[level]", "Activate debug informations", "Default to #{parser.data[:debug]}. Use `--debug=full` to get full debug and --debug=pry to launch the pry debugger", "Default to #{parser.data[:debug]}") do |v|
+			parser.data[:loglevel]=@config.fetch(:loglevel, "info")
+			opt.on("--debug", "=[level]", "Activate debug informations", "Use `--debug=pry` to launch the pry debugger", "Default to #{parser.data[:debug]}") do |v|
 				parser.data[:debug]=v
+			end
+			opt.on("--log", "=[level]", "Set log level", "Default to #{parser.data[:loglevel]}.") do |v|
+				parser.data[:loglevel]=v
 			end
 			opt.on("--config=config_file", "Set config file") do |v|
 				@config=Config.new(v)
@@ -154,6 +158,8 @@ Update the db according to the packages present in its folder
 				if self.data[:debug]=="pry"
 					puts "# Launching pry"
 					require 'pry'; binding.pry
+				elsif self.data[:debug]
+					SH.debug(self.data[:debug])
 				end
 				b.call(lvl, cmd) if b
 			end

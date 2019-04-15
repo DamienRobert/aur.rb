@@ -581,7 +581,7 @@ module Archlinux
 			if pkgs.empty?
 				l=self.class.new([])
 			else
-				SH.logger.warn "! AurCache: Calling aur for infos on: #{pkgs.join(', ')}"
+				SH.logger.debug "! AurCache: Calling aur for infos on: #{pkgs.join(', ')}"
 				l=@klass.packages(*pkgs)
 				@query_ignore += pkgs - l.names #these don't exist in aur
 			end
