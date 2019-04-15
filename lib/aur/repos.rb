@@ -290,7 +290,7 @@ module Archlinux
 					sig.rm if sig.exist?
 				end
 			end
-			to_clean
+			return to_clean.map {|pkg| pkg.path}, to_clean
 		end
 
 		def self.from_dir(dir, config: Archlinux.config)
