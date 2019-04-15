@@ -476,7 +476,12 @@ module Archlinux
 			install_opts={}
 			keys=method(:install?).parameters.select {|arg| arg[0]==:key}.map {|arg| arg[1]}
 			keys.each do |key|
-				opts.key?(key) && install_opts[key]=opts.delete(key)
+				case key
+				when :rebuild
+					opts.key?(key) && install_opts[key]=opts.fetch(key)
+				else
+					opts.key?(key) && install_opts[key]=opts.delete(key)
+				end
 			end
 			l, l_info=install?(*args, **install_opts, &callback) #return false in the callback to prevent install
 			if @install_method

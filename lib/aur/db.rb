@@ -147,6 +147,12 @@ module Archlinux
 					new=dir+f.basename
 					SH.logger.debug1 "-> #{op} #{f} to #{new}"
 					f.send(op, new)
+					sig=Pathname.new(f.to_s+".sig") #mv .sig too
+					if sig.exist?
+						newsig=dir+f.basename
+						SH.logger.debug1 "-> #{op} #{sig} to #{newsig}"
+						sig.send(op, newsig)
+					end
 					new
 				end
 			end
