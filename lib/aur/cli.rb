@@ -12,6 +12,9 @@ module Archlinux
 
 		parser.global_options do |opt|
 			parser.data[:color]=@config.fetch(:color, true)
+			parser.data[:debug]=@config.fetch(:debug, false)
+			parser.data[:loglevel]=@config.fetch(:loglevel, "info")
+
 			SimpleColor.enabled=parser.data[:color]
 			opt.on("--[no-]color", "Colorize output", "Default to #{parser.data[:color]}") do |v|
 				SimpleColor.enabled=v
@@ -21,17 +24,21 @@ module Archlinux
 			opt.on("--[no-]db=[dbname]", "Specify database", "Default to #{@config.db}") do |v|
 				@config.db=v
 			end
-		end
 
-		parser.main_options do |opt|
-			parser.data[:debug]=@config.fetch(:debug, false)
-			parser.data[:loglevel]=@config.fetch(:loglevel, "info")
 			opt.on("--debug", "=[level]", "Activate debug informations", "Use `--debug=pry` to launch the pry debugger", "Default to #{parser.data[:debug]}") do |v|
 				parser.data[:debug]=v
 			end
+
 			opt.on("--log", "=[level]", "Set log level", "Default to #{parser.data[:loglevel]}.") do |v|
 				parser.data[:loglevel]=v
 			end
+
+			opt.on("--[no-]verbose", "-v", "Verbose mode") do |v|
+				parser.data[:loglevel]=:debug if v
+			end
+		end
+
+		parser.main_options do |opt|
 			opt.on("--config=config_file", "Set config file") do |v|
 				@config=Config.new(v)
 			end
