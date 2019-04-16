@@ -285,7 +285,7 @@ module Archlinux
 				end
 				unless new_queries.empty?
 					SH.log(log_fallback, "Trying fallback for packages: #{new_queries.keys.join(', ')}")
-					fallback_got=self.resolve(*new_queries.values, provides: provides, ext_query: ext_query, fallback: false, log_missing: :debug3, **opts)
+					fallback_got=self.resolve(*new_queries.values, provides: provides, ext_query: ext_query, fallback: false, log_missing: :verbose, **opts)
 					got.merge!(fallback_got)
 					SH.log(log_missing, "Warning! Missing packages: #{missed.map {|m| r=m; r<<" [fallback: #{fallback}]" if (fallback=fallback_got[new_queries[m]]); r}.join(', ')}") unless missed.empty?
 				end
@@ -315,7 +315,7 @@ module Archlinux
 			self.class.new(l.slice(*get(*args)))
 		end
 
-		def children(node, mode=@children_mode, verbose: :debug3, **opts, &b)
+		def children(node, mode=@children_mode, verbose: :verbose, **opts, &b)
 			deps=@l.fetch(node).dependencies(mode)
 			SH.log(verbose, "- #{node} => #{deps}")
 			deps=get(*deps, **opts)
@@ -437,7 +437,7 @@ module Archlinux
 
 		# take a list of packages to install, return the new or updated
 		# packages to install with their dependencies
-		def install?(*packages, update: false, install_list: @install_list, verbose: true, verbose2: "debug", obsolete: true, ignore: @ignore, rebuild: false)
+		def install?(*packages, update: false, install_list: @install_list, verbose: true, verbose2: "verbose", obsolete: true, ignore: @ignore, rebuild: false)
 			packages+=self.names if update
 			if install_list
 				ignore -= packages.map {|p| Query.strip(p)}
@@ -592,7 +592,7 @@ module Archlinux
 			if pkgs.empty?
 				l=self.class.new([])
 			else
-				SH.logger.debug1 "! AurCache: Calling aur for infos on: #{pkgs.join(', ')}"
+				SH.logger.verbose1 "! AurCache: Calling aur for infos on: #{pkgs.join(', ')}"
 				l=@klass.packages(*pkgs)
 				@query_ignore += pkgs - l.names #these don't exist in aur
 			end

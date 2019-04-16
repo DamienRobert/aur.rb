@@ -240,9 +240,9 @@ module Archlinux
 				end
 				if Pathname.new(sig).file?
 					if force
-						SH.logger.debug "Signature #{sig} already exits, overwriting"
+						SH.logger.verbose1 "Signature #{sig} already exits, overwriting"
 					else
-						SH.logger.debug "Signature #{sig} already exits, skipping"
+						SH.logger.verbose1 "Signature #{sig} already exits, skipping"
 						next
 					end
 				end

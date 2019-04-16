@@ -2,7 +2,7 @@ require 'cmdparse'
 require 'aur/version'
 require 'simplecolor'
 SimpleColor.mix_in_string
-SH::Sh.default_sh_options[:log_level_exectue]="debug3" #was debug
+#SH::Sh.default_sh_options[:log_level_exectue]="debug3" #was debug
 
 module Archlinux
 	def self.cli
@@ -34,8 +34,16 @@ module Archlinux
 				parser.data[:loglevel]=v
 			end
 
-			opt.on("--[no-]verbose", "-v", "Verbose mode") do |v|
-				parser.data[:loglevel]=:debug if v
+			opt.on("--[no-]verbose", "-v", "Verbose mode", "Similar to --log=verbose") do |v|
+				parser.data[:loglevel]=:verbose if v
+			end
+
+			opt.on("--vv", "Verbose mode 2", "Similar to --log=verbose2") do |v|
+				parser.data[:loglevel]=:verbose1 if v
+			end
+
+			opt.on("--vvv", "Verbose mode 3", "Similar to --log=verbose3") do |v|
+				parser.data[:loglevel]=:verbose1 if v
 			end
 		end
 
@@ -159,10 +167,43 @@ Update the db according to the packages present in its folder
 					end
 				end
 			end
+			db_cmd.add_command('add') do |cmd|
+				cmd.takes_commands(false)
+				cmd.short_desc("Add files to the db")
+				cmd.options do |opt|
+					opt.on("-f", "--[no-]force", "Force adding files that are older than the ones in the db") do |v|
+						cmd.data[:force]=v
+					end
+				end
+				cmd.action do |*files|
+					db=Archlinux.config.db
+					db.add_to_db(files, update: !cmd.data[:force])
+				end
+			end
+			db_cmd.add_command('clean') do |cmd|
+				cmd.takes_commands(false)
+				cmd.short_desc("Clean old files in the db repository")
+				cmd.options do |opt|
+					opt.on("-f", "--[no-]force", "Force clean (default to dry-run)") do |v|
+						cmd.data[:force]=v
+					end
+				end
+				cmd.action do ||
+					db=Archlinux.config.db
+					paths, _packages=db.clean(dry_run: !cmd.data[:force])
+					if cmd.data[:force]
+						SH.logger.info "Cleaned:"
+					else
+						SH.logger.info "To clean:"
+					end
+					SH.logger.info paths.map {|p| "- #{p}"}.join("\n")
+				end
+			end
 		end
 
 		def parser.parse(*args, &b)
 			super(*args) do |lvl, cmd|
+				p self.data[:loglevel]
 				if self.data[:debug]=="pry"
 					puts "# Launching pry"
 					require 'pry'; binding.pry

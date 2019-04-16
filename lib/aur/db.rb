@@ -141,16 +141,16 @@ module Archlinux
 			dir=self.dir
 			files.map do |f|
 				if f.dirname == dir
-					SH.logger.debug1 "! #{f} already exists in #{dir}"
+					SH.logger.verbose1 "! #{f} already exists in #{dir}"
 					f
 				else
 					new=dir+f.basename
-					SH.logger.debug1 "-> #{op} #{f} to #{new}"
+					SH.logger.verbose1 "-> #{op} #{f} to #{new}"
 					f.send(op, new)
 					sig=Pathname.new(f.to_s+".sig") #mv .sig too
 					if sig.exist?
 						newsig=dir+f.basename
-						SH.logger.debug1 "-> #{op} #{sig} to #{newsig}"
+						SH.logger.verbose1 "-> #{op} #{sig} to #{newsig}"
 						sig.send(op, newsig)
 					end
 					new
@@ -265,7 +265,7 @@ module Archlinux
 
 		# move/copy files to db and add them
 		# if update==true, only add more recent packages
-		# pkgs should be a PackageFiles
+		# pkgs should be a PackageFiles or a PackageList or a list of files
 		def add_to_db(pkgs, update: true, op: :cp)
 			if update
 				pkgs=PackageFiles.create(pkgs).packages unless pkgs.is_a? PackageList
@@ -276,8 +276,14 @@ module Archlinux
 			else
 				pkgs=pkgs.map {|_k,v| v.path } if pkgs.is_a?(PackageList)
 			end
+			SH.logger.info "Updating #{pkgs} in #{self}"
 			cp_pkgs=move_to_db(*pkgs, op: op)
 			add(*cp_pkgs)
+		end
+
+		def clean(dry_run: true)
+			files=dir_packages(packages: false)
+			files.clean(dry_run: dry_run)
 		end
 	end
 end
