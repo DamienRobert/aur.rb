@@ -203,7 +203,7 @@ Update the db according to the packages present in its folder
 
 		def parser.parse(*args, &b)
 			super(*args) do |lvl, cmd|
-				p self.data[:loglevel]
+				# p self.data[:loglevel]
 				if self.data[:debug]=="pry"
 					puts "# Launching pry"
 					require 'pry'; binding.pry

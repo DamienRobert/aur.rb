@@ -149,7 +149,7 @@ module Archlinux
 					f.send(op, new)
 					sig=Pathname.new(f.to_s+".sig") #mv .sig too
 					if sig.exist?
-						newsig=dir+f.basename
+						newsig=dir+sig.basename
 						SH.logger.verbose1 "-> #{op} #{sig} to #{newsig}"
 						sig.send(op, newsig)
 					end
