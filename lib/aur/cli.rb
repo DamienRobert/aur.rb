@@ -167,6 +167,7 @@ Update the db according to the packages present in its folder
 					end
 				end
 			end
+
 			db_cmd.add_command('add') do |cmd|
 				cmd.takes_commands(false)
 				cmd.short_desc("Add files to the db")
@@ -180,6 +181,7 @@ Update the db according to the packages present in its folder
 					db.add_to_db(files, update: !cmd.data[:force])
 				end
 			end
+
 			db_cmd.add_command('clean') do |cmd|
 				cmd.takes_commands(false)
 				cmd.short_desc("Clean old files in the db repository")
@@ -197,6 +199,26 @@ Update the db according to the packages present in its folder
 						SH.logger.info "To clean:"
 					end
 					SH.logger.info paths.map {|p| "- #{p}"}.join("\n")
+				end
+			end
+		end
+
+		parser.add_command('sign') do |cmd|
+			cmd.takes_commands(false)
+			cmd.short_desc("Sign files")
+			cmd.options do |opt|
+				opt.on("-f", "--[no-]force", "Overwrite existing signatures") do |v|
+					cmd.data[:force]=v
+				end
+				opt.on("-v", "--verify", "Verify signatures") do |v|
+					cmd.data[:verify]=v
+				end
+			end
+			cmd.action do |*files|
+				if cmd.data[:verify]
+					Archlinux.config.verify_sign(*files)
+				else
+					Archlinux.config.sign(*files, force: cmd.data[:force])
 				end
 			end
 		end
