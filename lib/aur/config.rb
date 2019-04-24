@@ -46,8 +46,8 @@ module Archlinux
 
 		def default_config
 			{
-				cache: "arch_aur", #where we dl PKGBUILDs
-				db: 'aur', #if relative the db will be in cachedir
+				cache: "arch_aur", #where we dl PKGBUILDs; if relative will be in XDG_CACHE_HOME
+				db: 'aur', #if relative the db will be in cache dir
 				aur_url: "https://aur.archlinux.org/", #base aur url
 				chroot: {
 					root: "/var/lib/aurbuild/x86_64", #chroot root

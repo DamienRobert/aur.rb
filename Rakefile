@@ -2,10 +2,10 @@ require 'rake'
 
 begin
   require 'rubygems/tasks'
-  Gem::Tasks.new(sign: {checksum: true, pgp: true}, 
+  Gem::Tasks.new(sign: {checksum: true, pgp: true},
     scm: {status: true}) do |tasks|
-  tasks.console.command = 'pry'
-end
+    tasks.console.command = 'pry'
+  end
 rescue LoadError => e
   warn e.message
 end
@@ -26,4 +26,11 @@ rescue LoadError => e
   end
 end
 task :doc => :yard
+
+begin
+  require 'dr/rake_gems'
+  Gem::MyTasks.new
+rescue LoadError => e
+  warn e.message
+end
 
