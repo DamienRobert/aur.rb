@@ -1,15 +1,5 @@
 require 'rake'
 
-begin
-  require 'rubygems/tasks'
-  Gem::Tasks.new(sign: {checksum: true, pgp: true},
-    scm: {status: true}) do |tasks|
-    tasks.console.command = 'pry'
-  end
-rescue LoadError => e
-  warn e.message
-end
-
 require 'rake/testtask'
 Rake::TestTask.new do |test|
   test.libs << 'test'
