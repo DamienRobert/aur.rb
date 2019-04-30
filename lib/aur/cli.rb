@@ -15,37 +15,12 @@ module Archlinux
 			parser.data[:color]=@config.fetch(:color, true)
 			parser.data[:debug]=@config.fetch(:debug, false)
 			parser.data[:loglevel]=@config.fetch(:loglevel, "info")
-
-			SimpleColor.enabled=parser.data[:color]
-			opt.on("--[no-]color", "Colorize output", "Default to #{parser.data[:color]}") do |v|
-				SimpleColor.enabled=v
-			end
+			SH.log_options(opt, parser.data)
 
 			#opt.on("--[no-]db=[dbname]", "Specify database", "Default to #{@config.db}") do |v|
 			opt.on("--[no-]db=[dbname]", "Specify database", "Default to #{@config.db}") do |v|
 				@config.db=v
 			end
-
-			opt.on("--debug", "=[level]", "Activate debug informations", "Use `--debug=pry` to launch the pry debugger", "Default to #{parser.data[:debug]}") do |v|
-				parser.data[:debug]=v
-			end
-
-			opt.on("--log", "=[level]", "Set log level", "Default to #{parser.data[:loglevel]}.") do |v|
-				parser.data[:loglevel]=v
-			end
-
-			opt.on("--[no-]verbose", "-v", "Verbose mode", "Similar to --log=verbose") do |v|
-				parser.data[:loglevel]=:verbose if v
-			end
-
-			opt.on("--vv", "Verbose mode 2", "Similar to --log=verbose2") do |v|
-				parser.data[:loglevel]=:verbose1 if v
-			end
-
-			opt.on("--vvv", "Verbose mode 3", "Similar to --log=verbose3") do |v|
-				parser.data[:loglevel]=:verbose1 if v
-			end
-		end
 
 		parser.main_options do |opt|
 			opt.on("--config=config_file", "Set config file") do |v|
@@ -68,7 +43,7 @@ Search aur
 					r=GlobalAurCache.search(search)
 					r.each do |pkg|
 						name_version="#{pkg["Name"]} (#{pkg["Version"]})"
-						SH.logger.info("#{name_version.color(:yellow)}: #{pkg["Description"]}")
+						SH.logger.cli_info("#{name_version.color(:yellow)}: #{pkg["Description"]}")
 					end
 				end
 			end
@@ -84,7 +59,7 @@ Get infos on packages
 					r=GlobalAurCache.infos(*packages)
 					r.each do |pkg|
 						name_version="#{pkg["Name"]} (#{pkg["Version"]})"
-						SH.logger.info("#{name_version.color(:yellow)}: #{pkg["Description"]}")
+						SH.logger.cli_info("#{name_version.color(:yellow)}: #{pkg["Description"]}")
 					end
 				end
 			end
@@ -194,11 +169,11 @@ Update the db according to the packages present in its folder
 					db=Archlinux.config.db
 					paths, _packages=db.clean(dry_run: !cmd.data[:force])
 					if cmd.data[:force]
-						SH.logger.info "Cleaned:"
+						SH.logger.cli_mark "Cleaned:"
 					else
-						SH.logger.info "To clean:"
+						SH.logger.cli_mark "To clean:"
 					end
-					SH.logger.info paths.map {|p| "- #{p}"}.join("\n")
+					SH.logger.cli_info paths.map {|p| "- #{p}"}.join("\n")
 				end
 			end
 		end
@@ -225,16 +200,7 @@ Update the db according to the packages present in its folder
 
 		def parser.parse(*args, &b)
 			super(*args) do |lvl, cmd|
-				# p self.data[:loglevel]
-				if self.data[:debug]=="pry"
-					puts "# Launching pry"
-					require 'pry'; binding.pry
-				elsif self.data[:debug]
-					SH.debug(self.data[:debug])
-				end
-				if self.data[:loglevel]
-					SH.logger.cli_level(self.data[:loglevel])
-				end
+				SH.process_log_options(self.data)
 				b.call(lvl, cmd) if b
 			end
 		end
