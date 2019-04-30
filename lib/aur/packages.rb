@@ -149,13 +149,13 @@ module Archlinux
 
 		def same?(other)
 			unless @l.keys == other.keys
-				SH.logger.cli_warn("Inconsistency in the package names")
+				SH.logger.warn("#{self.class}: Inconsistency in the package names")
 				return false
 			end
 			r=true
 			@l.each do |name, pkg|
 				unless pkg.same?(other[name])
-					SH.logger.cli_warn("Inconsistensy for the package #{name}")
+					SH.logger.warn("#{self.class}: Inconsistensy for the package #{name}")
 					r=false
 				end
 			end
@@ -342,7 +342,7 @@ module Archlinux
 			else
 				r=call_tsort(l, method: :strongly_connected_components, **opts)
 				cycles=r.select {|c| c.length > 1}
-				SH.logger.cli_warn "Cycles detected: #{cycles}" unless cycles.empty?
+				SH.logger.warn "Cycles detected: #{cycles}" unless cycles.empty?
 				r.flatten
 			end
 		end
@@ -462,7 +462,7 @@ module Archlinux
 				full_updates, infos=yield full_updates, infos if block_given?
 				return full_updates, infos
 			else
-				SH.logger.cli_warn "External install list not defined"
+				SH.logger.warn "External install list not defined"
 			end
 		end
 
@@ -592,7 +592,7 @@ module Archlinux
 			if pkgs.empty?
 				l=self.class.new([])
 			else
-				SH.logger.cli_verbose1 "! AurCache: Calling aur for infos on: #{pkgs.join(', ')}"
+				SH.logger.verbose1 "! #{self.class}: Calling aur for infos on: #{pkgs.join(', ')}"
 				l=@klass.packages(*pkgs)
 				@query_ignore += pkgs - l.names #these don't exist in aur
 			end

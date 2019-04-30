@@ -33,7 +33,7 @@ module Archlinux
 				file=Pathname.new(file)
 				file=Pathname.new(ENV["XDG_CONFIG_HOME"] || "#{ENV['HOME']}/.config") + file if file.relative?
 			end
-			file_config= file&.readable? ? file.read : (SH.logger.cli_error "Error: Config file '#{file}' unreadable" unless file.nil?; '{}')
+			file_config= file&.readable? ? file.read : (SH.logger.error "Error: Config file '#{file}' unreadable" unless file.nil?; '{}')
 			wrap=eval("Proc.new { |config| #{file_config} }")
 			@opts=default_config.deep_merge(opts)
 			user_conf=wrap.call(self)
@@ -177,7 +177,7 @@ module Archlinux
 			when false, nil
 				@db=name #false for false, nil to reset
 			else
-				SH.logger.cli_warn("Database name #{name} not suitable, fallback to default")
+				SH.logger.warn("Database name #{name} not suitable, fallback to default")
 				@db=nil
 			end
 			# reset these so the pacman_conf gets the correct db name
@@ -235,14 +235,14 @@ module Archlinux
 			files.map do |file|
 				sig="#{file}.sig"
 				if !Pathname.new(file).file?
-					SH.logger.cli_error "Invalid file to sign #{file}"
+					SH.logger.error "Invalid file to sign #{file}"
 					next
 				end
 				if Pathname.new(sig).file?
 					if force
-						SH.logger.cli_verbose1 "Signature #{sig} already exits, overwriting"
+						SH.logger.verbose2 "Signature #{sig} already exits, overwriting"
 					else
-						SH.logger.cli_verbose1 "Signature #{sig} already exits, skipping"
+						SH.logger.verbose2 "Signature #{sig} already exits, skipping"
 						next
 					end
 				end

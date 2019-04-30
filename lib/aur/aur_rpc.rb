@@ -56,7 +56,7 @@ module Archlinux
 			uri=URI("#{url}/rpc/")
 			params = {v:5}.merge(h)
 			uri.query = URI.encode_www_form(params)
-			SH.logger.cli_verbose3 "! AurQuery: new query '#{uri}'"
+			SH.logger.debug "! AurQuery: new query '#{uri}'"
 			res = Net::HTTP.get_response(uri)
 			if res.is_a?(Net::HTTPSuccess)
 				r= res.body 
