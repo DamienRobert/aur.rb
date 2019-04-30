@@ -141,16 +141,16 @@ module Archlinux
 			dir=self.dir
 			files.map do |f|
 				if f.dirname == dir
-					SH.logger.verbose1 "! #{f} already exists in #{dir}"
+					SH.logger.cli_verbose1 "! #{f} already exists in #{dir}"
 					f
 				else
 					new=dir+f.basename
-					SH.logger.verbose1 "-> #{op} #{f} to #{new}"
+					SH.logger.cli_verbose1 "-> #{op} #{f} to #{new}"
 					f.send(op, new)
 					sig=Pathname.new(f.to_s+".sig") #mv .sig too
 					if sig.exist?
 						newsig=dir+sig.basename
-						SH.logger.verbose1 "-> #{op} #{sig} to #{newsig}"
+						SH.logger.cli_verbose1 "-> #{op} #{sig} to #{newsig}"
 						sig.send(op, newsig)
 					end
 					new
@@ -166,7 +166,7 @@ module Archlinux
 				files.map! {|f| Pathname.new(f)}
 				existing_files=files.select {|f| f.file?}
 				missing_files = files-existing_files
-				SH.logger.warn "In #{cmd}, missing files: #{missing_files.join(', ')}" unless missing_files.empty?
+				SH.logger.cli_warn "In #{cmd}, missing files: #{missing_files.join(', ')}" unless missing_files.empty?
 				unless existing_files.empty?
 					sign_files = @config&.use_sign?(:package)
 					PackageFiles.new(*existing_files, config: @config).sign(sign_name: sign_files, force: force_sign) if sign_files
@@ -276,7 +276,7 @@ module Archlinux
 			else
 				pkgs=pkgs.map {|_k,v| v.path } if pkgs.is_a?(PackageList)
 			end
-			SH.logger.info "Updating #{pkgs} in #{self}"
+			SH.logger.cli_info "Updating #{pkgs} in #{self}"
 			cp_pkgs=move_to_db(*pkgs, op: op)
 			add(*cp_pkgs)
 		end

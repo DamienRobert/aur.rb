@@ -70,7 +70,7 @@ module Archlinux
 			if do_update
 				write_patch(logdir) if logdir
 			else
-				SH.logger.error("Error in updating #{@dir}")
+				SH.logger.cli_error("Error in updating #{@dir}")
 			end
 		end
 
@@ -78,7 +78,7 @@ module Archlinux
 			if do_clone(url)
 				(logdir+"!#{@dir.basename}").on_ln_s(@dir.realpath) if logdir
 			else
-				SH.logger.error("Error in cloning #{url} to #{@dir}")
+				SH.logger.cli_error("Error in cloning #{url} to #{@dir}")
 			end
 		end
 	end
@@ -87,8 +87,8 @@ module Archlinux
 		#functions common to Makepkg and MakepkgList
 
 		def add_to_db(db=@config.db, force_sign: false)
-			SH.logger.warn "Bad database #{db}" unless db.is_a?(DB)
-			db.add(*list.select {|l| r=l.exist?; SH.logger.warn "Package #{l} not built, not adding to the db #{db.repo_name}" unless r; r}, force_sign: force_sign)
+			SH.logger.cli_warn "Bad database #{db}" unless db.is_a?(DB)
+			db.add(*list.select {|l| r=l.exist?; SH.logger.cli_warn "Package #{l} not built, not adding to the db #{db.repo_name}" unless r; r}, force_sign: force_sign)
 		end
 
 	end
@@ -263,7 +263,7 @@ module Archlinux
 		def makechroot(*args, sign: @config&.use_sign?(:package), force: false, **opts)
 			unless force
 				if list.all? {|f| f.exist?}
-					SH.logger.info "Skipping #{@dir} since it is already built (use force=true to override)"
+					SH.logger.cli_info "Skipping #{@dir} since it is already built (use force=true to override)"
 					return true #consider this a success build
 				end
 			end
@@ -279,7 +279,7 @@ module Archlinux
 
 		def build(*makepkg_args, mkarchroot: false, chroot: @config.dig(:chroot, :active), **opts)
 			force_sign = opts.delete(:rebuild) #when rebuilding we need to regenerate the signature
-			SH.logger.info "=> Building #{@dir}".color(:bold, :blue)
+			SH.logger.cli_info "=> Building #{@dir}".color(:bold, :blue)
 			if chroot
 				self.mkarchroot if mkarchroot
 				success, _r=makechroot(*makepkg_args, **opts)

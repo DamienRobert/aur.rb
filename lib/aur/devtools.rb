@@ -237,7 +237,7 @@ module Archlinux
 				if repos[name]
 					new_conf[:repos][name]=repos[name]
 				else
-					SH.logger.warn "sync_db: unknown repo #{name}"
+					SH.logger.cli_warn "sync_db: unknown repo #{name}"
 				end
 			end
 			tmp_pacman(new_conf) do |pacman, file|
