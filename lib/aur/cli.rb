@@ -21,6 +21,7 @@ module Archlinux
 			opt.on("--[no-]db=[dbname]", "Specify database", "Default to #{@config.db}") do |v|
 				@config.db=v
 			end
+		end
 
 		parser.main_options do |opt|
 			opt.on("--config=config_file", "Set config file") do |v|
