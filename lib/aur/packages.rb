@@ -315,11 +315,11 @@ module Archlinux
 			self.class.new(l.slice(*get(*args)))
 		end
 
-		def children(node, mode=@children_mode, verbose: :verbose2, **opts, &b)
+		def children(node, mode=@children_mode, log_level: :verbose2, **opts, &b)
 			deps=@l.fetch(node).dependencies(mode)
-			SH.log(verbose, "- #{node} => #{deps}")
+			SH.log(log_level, "- #{node}: #{deps.join(', ')}")
 			deps=get(*deps, **opts)
-			SH.log(verbose, " => #{deps}")
+			SH.log(log_level, "  => #{deps.join(', ')}") unless deps.empty?
 			if b
 				deps.each(&b)
 			else
@@ -394,9 +394,9 @@ module Archlinux
 			return up.map {|_k, v| v[:out_pkg]}, up
 		end
 
-		def get_updates(l, verbose: true, obsolete: true, ignore: @ignore, rebuild: false)
+		def get_updates(l, log_level: true, obsolete: true, ignore: @ignore, rebuild: false)
 			c=check_updates(l, ignore: ignore)
-			show_updates(c, obsolete: obsolete, log_level: verbose) if verbose
+			show_updates(c, obsolete: obsolete, log_level: log_level)
 			if rebuild
 				# keep all packages
 				to_build=c.select {|_k,v| v[:out_pkg]}
@@ -407,7 +407,7 @@ module Archlinux
 		end
 
 		#take the result of check_updates and pretty print them
-		def show_updates(r, obsolete: true, log_level: "info")
+		def show_updates(r, obsolete: true, log_level: true)
 			require 'simplecolor'
 			r.each do |k,v|
 				next if v[:op]==:equal
@@ -437,23 +437,22 @@ module Archlinux
 
 		# take a list of packages to install, return the new or updated
 		# packages to install with their dependencies
-		def install?(*packages, update: false, install_list: @install_list, verbose: true, verbose2: :verbose, obsolete: true, ignore: @ignore, rebuild: false)
+		def install?(*packages, update: false, install_list: @install_list, log_level: true, log_level_verbose: :verbose, obsolete: true, ignore: @ignore, rebuild: false)
 			packages+=self.names if update
 			if install_list
 				ignore -= packages.map {|p| Query.strip(p)}
-				SH.log(verbose2, "# Checking packages #{packages.join(', ')}")
+				SH.log(log_level_verbose, "# Checking packages #{packages.join(', ')}", color: :bold)
 				new_pkgs=install_list.slice(*packages)
-				u, u_infos=get_updates(new_pkgs, verbose: verbose2, obsolete: obsolete, ignore: ignore, rebuild: rebuild)
+				u, u_infos=get_updates(new_pkgs, log_level: log_level_verbose, obsolete: obsolete, ignore: ignore, rebuild: rebuild)
 				# todo: update this when we have a better preference mechanism
 				# (then we will need to put @official in the install package class)
 				new=self.class.new(l.values).merge(new_pkgs)
 				new.chain_query(install_list)
 				# The updates or new packages may need new deps
-				SH.log(verbose2, "# Checking dependencies of #{u.join(', ')}") unless u.empty?
+				SH.log(log_level_verbose, "# Checking dependencies of #{u.join(', ')}", color: :bold) unless u.empty?
 				full=new.rget(*u)
-				# full_updates=get_updates(new.values_at(*full), verbose: verbose, obsolete: obsolete)
-				SH.log(verbose, "New packages:")
-				full_updates, full_infos=get_updates(new.slice(*full), verbose: verbose, obsolete: obsolete, ignore: ignore, rebuild: rebuild=="full" ? true : false)
+				SH.log(log_level, "New packages:", color: :bold)
+				full_updates, full_infos=get_updates(new.slice(*full), log_level: log_level, obsolete: obsolete, ignore: ignore, rebuild: rebuild=="full" ? true : false)
 				if rebuild and rebuild != "full" #we need to merge back u
 					full_updates |=u
 					full_infos.merge!(u_infos)
