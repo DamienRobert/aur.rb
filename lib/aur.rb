@@ -57,3 +57,5 @@ db.check_udpate / db.update
 # - split Makepkg into a class for downloading/viewing/querying and the
 # class for installing. This will allow to support both github and the aur
 # rpc.
+# - in `sync_db` setup a simily local cache so that the packages don't get
+# copied twice

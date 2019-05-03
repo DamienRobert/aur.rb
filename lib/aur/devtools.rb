@@ -36,7 +36,7 @@ module Archlinux
 					h =  mode==:options ? config[:options] : config[:repos][mode]
 					if list.include?(key)
 						h[key]||=[]
-						h[key]<<value
+						h[key] << value
 					else
 						h[key]=value
 					end
@@ -177,6 +177,7 @@ module Archlinux
 		end
 
 		# this takes the same options as nspawn
+		# => this creates or update a chroot
 		def mkarchroot(*args, nspawn: @opts.dig(:chroot, :update), default_opts: [], root: @opts.dig(:chroot, :root), **opts, &b)
 			files do |key, file|
 				default_opts += ["-C", file] if key==:pacman_conf
@@ -216,7 +217,9 @@ module Archlinux
 			opts[:method]||=:sh
 
 			#makechrootpkg calls itself with sudo --preserve-env=SOURCE_DATE_EPOCH,GNUPGHOME so it does not keep PKGDEST..., work around this by providing our own sudo
-			@config.launch(:makechrootpkg, *args, default_opts: default_opts, sudo: @config.sudo('sudo --preserve-env=GNUPGHOME,PKGDEST,SOURCE_DATE_EPOCH'), **opts, &b)
+			#@config.launch(:makechrootpkg, *args, default_opts: default_opts, sudo: @config.sudo('sudo --preserve-env=GNUPGHOME,PKGDEST,SOURCE_DATE_EPOCH'), **opts, &b)
+			## Update: this has been fixed in devtools-20190329
+			@config.launch(:makechrootpkg, *args, default_opts: default_opts, **opts, &b)
 		end
 
 		def tmp_pacman(conf, **opts)
