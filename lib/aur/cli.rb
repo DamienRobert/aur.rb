@@ -44,7 +44,7 @@ Search aur
 					r=GlobalAurCache.search(search)
 					r.each do |pkg|
 						name_version="#{pkg["Name"]} (#{pkg["Version"]})"
-						SH.logger.cli_info("#{name_version.color(:yellow)}: #{pkg["Description"]}")
+						SH.logger.info("#{name_version.color(:yellow)}: #{pkg["Description"]}")
 					end
 				end
 			end
@@ -60,7 +60,7 @@ Get infos on packages
 					r=GlobalAurCache.infos(*packages)
 					r.each do |pkg|
 						name_version="#{pkg["Name"]} (#{pkg["Version"]})"
-						SH.logger.cli_info("#{name_version.color(:yellow)}: #{pkg["Description"]}")
+						SH.logger.info("#{name_version.color(:yellow)}: #{pkg["Description"]}")
 					end
 				end
 			end
@@ -134,10 +134,7 @@ Update the db according to the packages present in its folder
 				cmd.action do ||
 					db=Archlinux.config.db
 					if cmd.data[:check]
-						#SH.logger.info db.check_update.to_s
-						db.check_update do |c|
-							db.packages.show_updates(c, obsolete: true)
-						end
+						db.show_updates
 					else
 						db.update
 					end
@@ -170,11 +167,11 @@ Update the db according to the packages present in its folder
 					db=Archlinux.config.db
 					paths, _packages=db.clean(dry_run: !cmd.data[:force])
 					if cmd.data[:force]
-						SH.logger.cli_mark "Cleaned:"
+						SH.logger.mark "Cleaned:"
 					else
-						SH.logger.cli_mark "To clean:"
+						SH.logger.mark "To clean:"
 					end
-					SH.logger.cli_info paths.map {|p| "- #{p}"}.join("\n")
+					SH.logger.info paths.map {|p| "- #{p}"}.join("\n")
 				end
 			end
 		end

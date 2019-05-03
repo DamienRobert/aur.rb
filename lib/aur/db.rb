@@ -253,6 +253,12 @@ module Archlinux
 			return {refresh: refresh, add: add, remove: remove}
 		end
 
+		def show_updates(other=dir_packages)
+			check_update(other) do |c|
+				packages.show_updates(c, obsolete: true)
+			end
+		end
+
 		def update(other=dir_packages)
 			r=check_update(other)
 			add(*(r[:refresh].merge(r[:add])).map do |_k,v|
