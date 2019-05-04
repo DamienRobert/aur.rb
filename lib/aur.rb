@@ -32,9 +32,12 @@ aur.install?("pacaur", update: true)
 Archlinux.config.instance_variable_set(:@install_list, nil)
 aur.install_list=Archlinux.config.install_list
 
+
 # Update a db with the latest packages available on the local filesystem
 db=Archlinux.config.db
 db.check_udpate / db.update
+# see package names
+db.packages.l.keys
 
 # Check for useless packages in the db
 pkgs = Archlinux.config.db.packages

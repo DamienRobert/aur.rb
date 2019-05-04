@@ -216,7 +216,7 @@ module Archlinux
 			r
 		end
 
-		# select the most appropriate match (does not use ext_query)
+		# select the most appropriate match (does not use ext_query), using #query
 		def find(q, **opts)
 			return q if @l.key?(q)
 			q=Query.create(q); pkg=q.name
@@ -252,7 +252,7 @@ module Archlinux
 		# here the arguments are Strings
 		# return the arguments replaced by eventual provides + missing packages
 		# are added to @l
-		# So this is like query, except we respect @query_ignore, and call
+		# So this is like find, except we respect @query_ignore, and call
 		# ext_query for missing packages
 		def resolve(*queries, provides: true, ext_query: @ext_query, fallback: true, log_missing: :warn, log_fallback: :warn, **opts)
 			got={}; missed=[]

@@ -172,12 +172,20 @@ module Archlinux
 					sign_files = @config&.use_sign?(:package)
 					PackageFiles.new(*existing_files, config: @config).sign(sign_name: sign_files, force: force_sign) if sign_files
 					call(cmd, path, *existing_files, default_opts: default_opts, **opts)
+					@packages=nil #we need to refresh the list
 				end
 			end
+			files
 		end
 
-		def remove(*args, **opts)
-			add(*args, cmd: :'repo-remove', **opts)
+		def remove(*pkgnames, cmd: :'repo-remove', default_opts:[], sign: @config&.use_sign?(:db), **opts)
+			default_opts+=['-s', '-v'] if sign
+			default_opts+=['--key', sign] if sign.is_a?(String)
+			dir.chdir do
+				call(cmd, path, *pkgnames, default_opts: default_opts, **opts)
+				@packages=nil #we need to refresh the list
+			end
+			pkgnames
 		end
 
 		def packages(refresh=false)
@@ -266,7 +274,6 @@ module Archlinux
 			end)
 			# remove(*(r[:remove].map {|_k,v| packages[v[:in_pkg]].file.shellescape}))
 			remove(*(r[:remove].map {|_k,v| Query.strip(v[:in_pkg])}))
-			@packages=nil #we need to refresh the list
 			r
 		end
 
@@ -288,9 +295,23 @@ module Archlinux
 			add(*cp_pkgs)
 		end
 
-		def clean(dry_run: true)
+		# in clean_old, we clean the dir packages which have a newer
+		# version (in the dir).
+		def clean_old(dry_run: true)
 			files=dir_packages(packages: false)
 			files.clean(dry_run: dry_run)
+		end
+
+		# In clean, we clean the dir packages which are newer or not present in
+		# the db. This is like the reverse of `update`. In particular be
+		# careful that this will delete newer versions or added versions
+		def clean_obsolete
+			files=dir_packages(packages: false)
+			r=files.packages.check_update(self.packages)
+			add(*(r[:refresh].merge(r[:obsolete])).map do |_k,v|
+				files[v[:in_pkg]].path
+			end)
+			r
 		end
 	end
 end

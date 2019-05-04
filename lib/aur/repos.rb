@@ -273,6 +273,18 @@ module Archlinux
 			@config&.sign(*@files, sign_name: sign_name, **opts)
 		end
 
+		# pass packages names to remove
+		def rm_pkgs(*pkgs)
+			deleted=[]
+			pkgs.each do |pkg_name|
+				pkg=packages.fetch(pkg_name, nil)
+				pkg&.path&.rm
+				packages.delete(pkg)
+				deleted << pkg_name if pkg
+			end
+			deleted
+		end
+
 		def clean(dry_run: true)
 			to_clean=[]
 			latest=packages.latest.values
