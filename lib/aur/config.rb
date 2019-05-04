@@ -1,5 +1,6 @@
 require 'aur/helpers'
 require 'aur/packages'
+require 'aur/install_packages'
 require 'aur/makepkg'
 
 module Archlinux
@@ -55,8 +56,9 @@ module Archlinux
 					update: 'pacman -Syu --noconfirm', #how to update an existing chroot
 					packages: ['base-devel'], #the packages that are installed in the chroto
 				},
-				default_packages_class: AurPackageList,
+				default_packages_class: PackageList,
 				# default_install_list_class: AurMakepkgCache,
+				default_install_packages_class: AurPackageList,
 				default_install_list_class: AurCache,
 				default_get_class: Git, #we use git to fetch PKGBUILD from aur
 				sign: true, #can be made more atomic, cf the sign method
@@ -94,7 +96,7 @@ module Archlinux
 				# by default this is the db packages + foreign packages
 				default=db.packages.merge(RepoPkgs.new(Repo.foreign_list, config: self).packages)
 				default=yield default if block_given?
-				@default_packages=to_packages(default.l)
+				@default_packages=to_packages(default.l, install: true)
 			else
 				@default_packages
 			end
@@ -210,8 +212,11 @@ module Archlinux
 			stop_sudo_loop if respond_to?(:stop_sudo_loop)
 		end
 
-		def to_packages(l=[])
-			Archlinux.create_class(@opts[:default_packages_class],l)
+		def to_packages(l=[], install: false)
+			Archlinux.create_class(
+				install ? @opts[:default_install_packages_class] :
+				@opts[:default_packages_class],
+				l)
 		end
 
 		#:package, :db
