@@ -121,6 +121,7 @@ module Archlinux
 			pacman=PacmanConf.create(conf, config: self)
 			aur=self.db(false)
 			if aur and !pacman[:repos].include?(aur.repo_name)
+				require 'uri'
 				pacman[:repos][aur.repo_name]={Server: ["file://#{URI.escape(aur.dir.to_s)}"]}
 			end
 			pacman
@@ -136,13 +137,7 @@ module Archlinux
 
 		def chroot_devtools
 			unless @chroot_devtools
-				require 'uri'
-				# here we need the raw value, since this will be used by pacstrap
-				# which calls pacman --root; so the inferred path for DBPath and so
-				# on would not be correct since it is specified
 				devtools_pacman=PacmanConf.new(get_config_file(:pacman, type: :chroot))
-				# here we need to expand the config, so that Server =
-				# file://...$repo...$arch get their real values
 				my_pacman=default_pacman_conf
 				devtools_pacman[:repos].merge!(my_pacman.non_official_repos)
 				devtools_pacman=setup_pacman_conf(devtools_pacman)

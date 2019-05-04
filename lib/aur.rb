@@ -35,6 +35,15 @@ aur.install_list=Archlinux.config.install_list
 # Update a db with the latest packages available on the local filesystem
 db=Archlinux.config.db
 db.check_udpate / db.update
+
+# Check for useless packages in the db
+pkgs = Archlinux.config.db.packages
+needed = pkgs.rget(*wanted_pkgs)
+# present = pkgs.latest.keys ## we want the version
+present = pkgs.l.keys
+notneeded=present - needed
+files=pkgs.slice(*notneeded).map {|k,v| v.file}
+db.remove(*files)
 =end
 
 # TODO:
@@ -59,3 +68,5 @@ db.check_udpate / db.update
 # rpc.
 # - in `sync_db` setup a simily local cache so that the packages don't get
 # copied twice
+# - add a 'build' option to cli install (build but don't install if
+# possible)

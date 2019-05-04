@@ -139,7 +139,7 @@ module Archlinux
 		def move_to_db(*files, op: :mv)
 			files=files.map {|f| Pathname.new(f).realpath}
 			dir=self.dir
-			SH.logger.verbose "Moving #{files} to #{dir}"
+			SH.logger.verbose "#{op}: #{files.join(', ')} to #{dir}"
 			files.map do |f|
 				if f.dirname == dir
 					SH.logger.verbose2 "! #{f} already exists in #{dir}"
