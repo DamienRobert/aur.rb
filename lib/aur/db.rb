@@ -305,13 +305,17 @@ module Archlinux
 		# In clean, we clean the dir packages which are newer or not present in
 		# the db. This is like the reverse of `update`. In particular be
 		# careful that this will delete newer versions or added versions
-		def clean_obsolete
+		def clean_obsolete(dry_run: true)
 			files=dir_packages(packages: false)
-			r=files.packages.check_update(self.packages)
-			add(*(r[:refresh].merge(r[:obsolete])).map do |_k,v|
-				files[v[:in_pkg]].path
-			end)
-			r
+			up=files.packages.check_update(self.packages)
+			to_remove=up.select {|_k, u| u[:op]==:upgrade or u[:op]==:downgrade or u[:op]==:obsolete}.map do |_k,v|
+				v[:in_pkg]
+			end
+			if dry_run
+				to_remove
+			else
+				files.rm_pkgs(*to_remove)
+			end
 		end
 	end
 end

@@ -278,10 +278,18 @@ module Archlinux
 			deleted=[]
 			pkgs.each do |pkg_name|
 				pkg=packages.fetch(pkg_name, nil)
-				pkg&.path&.rm
-				packages.delete(pkg)
-				deleted << pkg_name if pkg
+				if pkg
+					path=pkg.path
+					path.rm if path.exist?
+					sig=Pathname.new("#{path}.sig")
+					sig.rm if sig.exist?
+					## This is not enough, because this does not update @versions
+					## so we need to refresh the list
+					# packages.delete(pkg_name)
+					deleted << pkg_name
+				end
 			end
+			@packages=nil #we need to refresh the list.
 			deleted
 		end
 
