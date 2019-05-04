@@ -7,6 +7,7 @@ require 'aur/versions'
 require 'aur/devtools'
 require 'aur/makepkg'
 require 'aur/packages'
+require 'aur/install_packages'
 
 =begin
 # query aur
