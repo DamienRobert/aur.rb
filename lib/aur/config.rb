@@ -13,23 +13,11 @@ module Archlinux
 		attr_accessor :opts
 		Archlinux.delegate_h(self, :@opts)
 		include SH::ShConfig
-
-		def pretty_print(pp)
-			# pp.object_address_group(self)
-			pp.object_address_group(self) {}
-		end
-
-		#since we hide the pp value of config, allow to inspect it
-		def export
-			r={}
-			instance_variables.sort.each do |var|
-				r[var]=instance_variable_get(var)
-			end
-			r
-		end
+		include DR::PPHelper
 
 		# pass nil to prevent loading a config file
 		def initialize(file="aur.rb", **opts)
+			@file=file
 			if file
 				file=Pathname.new(file)
 				file=Pathname.new(ENV["XDG_CONFIG_HOME"] || "#{ENV['HOME']}/.config") + file if file.relative?
@@ -39,6 +27,10 @@ module Archlinux
 			@opts=default_config.deep_merge(opts)
 			user_conf=wrap.call(self)
 			@opts.deep_merge!(user_conf) if user_conf.is_a?(Hash)
+		end
+
+		def to_pp
+			@file.to_s
 		end
 
 		def sh_config
