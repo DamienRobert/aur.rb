@@ -69,9 +69,14 @@ Get infos on packages
 		parser.add_command('build') do |build_cmd|
 			build_cmd.takes_commands(false)
 			build_cmd.short_desc("Build packages")
+			build_cmd.options do |opt|
+				opt.on("-i", "--[no-]install", "Install the package afterwards") do |v|
+					build_cmd.data[:install]=v
+				end
+			end
 			build_cmd.action do |*pkgbuild_dirs|
-				mkpkg=Archlinux::MakepkgList.new(pkgbuild_dirs)
-				mkpkg.build
+				mkpkg=Archlinux::MakepkgList.new(pkgbuild_dirs, cache: nil)
+				mkpkg.build(install: build_cmd.data[:install])
 			end
 		end
 
@@ -81,6 +86,7 @@ Get infos on packages
 			install_cmd.long_desc(<<-EOS)
 Install of update packages
 			EOS
+			install_cmd.data={install: true}
 			install_cmd.options do |opt|
 				opt.on("-u", "--[no-]update", "Update existing packages too") do |v|
 					install_cmd.data[:update]=v
@@ -101,6 +107,11 @@ Install of update packages
 					install_cmd.data[:devel]=v
 				end
 			end
+			install_cmd.options do |opt|
+				opt.on("-i", "--[no-]install", "Install the package afterwards", "Defaults to #{install_cmd.data[:install]}") do |v|
+					install_cmd.data[:install]=v
+				end
+			end
 			install_cmd.argument_desc(packages: "packages names")
 			install_cmd.action do |*packages|
 				if install_cmd.data[:devel]
@@ -110,7 +121,7 @@ Install of update packages
 				if install_cmd.data[:check]
 					aur.install?(*packages, update: install_cmd.data[:update], rebuild: install_cmd.data[:rebuild])
 				else
-					aur.install(*packages, update: install_cmd.data[:update], rebuild: install_cmd.data[:rebuild])
+					aur.install(*packages, update: install_cmd.data[:update], rebuild: install_cmd.data[:rebuild], install: install_cmd.data[:install])
 				end
 			end
 		end

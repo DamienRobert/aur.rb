@@ -295,9 +295,9 @@ module Archlinux
 			add(*cp_pkgs)
 		end
 
-		# in clean_old, we clean the dir packages which have a newer
+		# in clean_dir, we clean the dir packages which have a newer
 		# version (in the dir).
-		def clean_old(dry_run: true)
+		def clean_dir(dry_run: true)
 			files=dir_packages(packages: false)
 			files.clean(dry_run: dry_run)
 		end
@@ -305,12 +305,10 @@ module Archlinux
 		# In clean, we clean the dir packages which are newer or not present in
 		# the db. This is like the reverse of `update`. In particular be
 		# careful that this will delete newer versions or added versions
-		def clean_obsolete(dry_run: true)
-			files=dir_packages(packages: false)
-			up=files.packages.check_update(self.packages)
-			to_remove=up.select {|_k, u| u[:op]==:upgrade or u[:op]==:downgrade or u[:op]==:obsolete}.map do |_k,v|
-				v[:in_pkg]
-			end
+		def clean(dry_run: true)
+			dir_files=dir_packages(packages: false).files
+			db_files=files
+			to_remove=dir_files - db_files
 			if dry_run
 				to_remove
 			else

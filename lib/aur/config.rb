@@ -262,28 +262,30 @@ module Archlinux
 			@install_list ||= Archlinux.create_class(@opts[:default_install_list_class], config: self)
 		end
 
-		def post_install(pkgs, **opts)
+		def post_install(pkgs, install: false, **opts)
 			if (db=self.db)
-				tools=local_devtools
-				# info=opts[:pkgs_info]
-				# to_install=info[:all_pkgs].select {|_k,v| v[:op]==:install}.
-				# 	map {|_k,v| v[:out_pkg]}
-				# tools.sync_db(db.repo_name, install: to_install)
+				if install
+					tools=local_devtools
+					# info=opts[:pkgs_info]
+					# to_install=info[:all_pkgs].select {|_k,v| v[:op]==:install}.
+					# 	map {|_k,v| v[:out_pkg]}
+					# tools.sync_db(db.repo_name, install: to_install)
 
-				# Let's just install anything and let pacman handle it
-				m=opts[:makepkg_list]
-				if m
-					# we need to update the package versions with the ones
-					# provided by the current makepkg (which may be more recent than
-					# the one from aur's rpc in case of devel packages)
-					ipkgs=pkgs.map do |pkg|
-						found=m.packages.find(Query.strip(pkg))
-						found || pkg
+					# Let's just install anything and let pacman handle it
+					m=opts[:makepkg_list]
+					if m
+						# we need to update the package versions with the ones
+						# provided by the current makepkg (which may be more recent than
+						# the one from aur's rpc in case of devel packages)
+						ipkgs=pkgs.map do |pkg|
+							found=m.packages.find(Query.strip(pkg))
+							found || pkg
+						end
+					else
+						ipkgs=pkgs
 					end
-				else
-					ipkgs=pkgs
+					tools.sync_db(db.repo_name, install: %w(--needed) + ipkgs)
 				end
-				tools.sync_db(db.repo_name, install: %w(--needed) + ipkgs)
 			end
 		end
 	end

@@ -291,7 +291,7 @@ module Archlinux
 			end
 			if success and (db=@config.db)
 				success=add_to_db(db, force_sign: force_sign)
-				if !chroot #sync db
+				if !chroot #sync db so that the new versions are available
 					tools=@config.local_devtools
 					tools.sync_db(db.repo_name)
 				end
@@ -333,7 +333,7 @@ module Archlinux
 
 		def initialize(l=[], config: Archlinux.config, cache: config.cachedir)
 			@config=config
-			@cache=Pathname.new(cache)
+			@cache=Pathname.new(cache) if cache #how relative filenames are resolved; pass nil to use current dir
 			@l={}
 			merge(l)
 		end
@@ -342,7 +342,7 @@ module Archlinux
 			l.each do |m|
 				unless m.is_a?(Makepkg)
 					m=Pathname.new(m)
-					m = @cache+m if m.relative?
+					m = @cache+m if m.relative? and @cache
 					m=Makepkg.new(m, config: @config)
 				end
 				@l[m.name]=m
@@ -408,14 +408,27 @@ module Archlinux
 
 		def build(*args, chroot: @config.dig(:chroot, :active), **opts)
 			mkarchroot if chroot
-			@l.values.map do |l| #all?
+			@l.values.map do |l|
 				l.build(*args, chroot: chroot, **opts)
 			end
 		end
 
 		def install(*args, view: true, **opts)
 			r=get(view: view)
-			build(*args, **opts) if r
+			if r
+				success=build(*args, **opts) 
+				# call post_install hook if all packages succeeded
+				if success == true
+					@config.post_install(l, makepkg_list: m, **opts)
+				else #this should be a list of success and failures
+					l_success=[]
+					l.each_with_index do |pkg,i|
+						l_success << pkg if success[i]
+					end
+					@config.post_install(l_success, makepkg_list: m, **opts)
+				end
+				success
+			end
 		end
 	end
 end
