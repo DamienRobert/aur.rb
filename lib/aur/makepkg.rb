@@ -91,6 +91,7 @@ module Archlinux
 				SH.logger.error "Bad database #{db}, can't add to database"
 			else
 				db.add(*list.select {|l| r=l.exist?; SH.logger.warn "Package #{l} not built, not adding to the db #{db.repo_name}" unless r; r}, force_sign: force_sign)
+				true #do return false if there were errors
 			end
 		end
 
@@ -296,12 +297,21 @@ module Archlinux
 					tools.sync_db(db.repo_name)
 				end
 			end
-			success
+			if success
+				packages.l.keys #return the list of built package
+				# TODO better handling of split dirs
+			else
+				success
+			end
 		end
 
 		def install(*args, view: true, **opts)
 			r=get(view: view)
-			build(*args, **opts) if r
+			if r
+				build(*args, **opts)
+			else
+				r
+			end
 		end
 
 		def list(**opts)
@@ -406,29 +416,19 @@ module Archlinux
 			@l.values.flat_map { |l| l.list }
 		end
 
-		def build(*args, chroot: @config.dig(:chroot, :active), **opts)
+		def build(*args, chroot: @config.dig(:chroot, :active), install: false, **opts)
 			mkarchroot if chroot
-			@l.values.map do |l|
+			built=@l.values.map do |l|
 				l.build(*args, chroot: chroot, **opts)
 			end
+			l_success=built.flat_map { |pkgs| pkgs || []}
+			@config.post_install(l_success, makepkg_list: self, install: install, **opts)
+			built
 		end
 
 		def install(*args, view: true, **opts)
 			r=get(view: view)
-			if r
-				success=build(*args, **opts) 
-				# call post_install hook if all packages succeeded
-				if success == true
-					@config.post_install(l, makepkg_list: m, **opts)
-				else #this should be a list of success and failures
-					l_success=[]
-					l.each_with_index do |pkg,i|
-						l_success << pkg if success[i]
-					end
-					@config.post_install(l_success, makepkg_list: m, **opts)
-				end
-				success
-			end
+			build(*args, **opts) if r
 		end
 	end
 end

@@ -30,7 +30,7 @@ module Archlinux
 					tops.each { |dep| m[Query.strip(dep)]&.asdeps=false }
 				end
 				m=b.call(m) if b #return false to prevent install
-				m
+				m.install(**opts) if m
 			end
 		end
 	end
