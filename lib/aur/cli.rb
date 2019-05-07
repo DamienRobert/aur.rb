@@ -66,6 +66,15 @@ Get infos on packages
 			end
 		end
 
+		parser.add_command('build') do |build_cmd|
+			build_cmd.takes_commands(false)
+			build_cmd.short_desc("Build packages")
+			build_cmd.action do |*pkgbuild_dirs|
+				mkpkg=Archlinux::MakepkgList.new(pkgbuild_dirs)
+				mkpkg.build
+			end
+		end
+
 		parser.add_command('install') do |install_cmd|
 			install_cmd.takes_commands(false)
 			install_cmd.short_desc("Install packages")
