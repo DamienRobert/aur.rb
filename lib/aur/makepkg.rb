@@ -251,7 +251,7 @@ module Archlinux
 			default_opts << "--key=#{sign}" if sign.is_a?(String)
 			default_opts << "--force" if force
 			default_opts << "--asdeps" if asdeps
-			default_opts+=@config.dig[:makepkg][:build_args]
+			default_opts+=@config[:makepkg][:build_args]
 
 			# error=13 means the package is already built, we consider that a success
 			success, _r=call(*args, method: :sh, default_opts: default_opts, env: @env, expected: 13, **opts)

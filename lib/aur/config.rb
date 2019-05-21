@@ -86,7 +86,8 @@ module Archlinux
 		def default_packages
 			if @default_packages.nil?
 				# by default this is the db packages + foreign packages
-				default=db.packages.merge(RepoPkgs.new(Repo.foreign_list, config: self).packages)
+				default=db == false ? to_packages([]) : db.packages
+				default.merge(RepoPkgs.new(Repo.foreign_list, config: self).packages)
 				default=yield default if block_given?
 				@default_packages=to_packages(default.l, install: true)
 			else

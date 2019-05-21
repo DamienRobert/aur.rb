@@ -23,6 +23,28 @@ module Archlinux
 			end
 		end
 
+		add_install_option = ->(cmd) do
+			cmd.options do |opt|
+				opt.on("-i", "--[no-]install", "Install the package afterwards", "Defaults to #{!! cmd.data[:install]}") do |v|
+					cmd.data[:install]=v
+				end
+
+				opt.on("--[no-]chroot[=path]", "Use a chroot", "Defaults to #{@config.opts[:chroot][:active] && @config.opts[:chroot][:root]}") do |v|
+					if v
+						@config.opts[:chroot][:active]=true
+						@config.opts[:chroot][:root]=v if v.is_a?(String)
+					else
+						@config.opts[:chroot][:active]=v
+					end
+				end
+
+				opt.on("--local", "Local mode", "Shortcut for --no-db --no-chroot") do |v|
+					@config.opts[:chroot][:active]=false
+					@config.db=false
+				end
+			end
+		end
+
 		parser.main_options do |opt|
 			opt.on("--config=config_file", "Set config file") do |v|
 				@config=Config.new(v)
@@ -69,11 +91,8 @@ Get infos on packages
 		parser.add_command('build') do |build_cmd|
 			build_cmd.takes_commands(false)
 			build_cmd.short_desc("Build packages")
-			build_cmd.options do |opt|
-				opt.on("-i", "--[no-]install", "Install the package afterwards") do |v|
-					build_cmd.data[:install]=v
-				end
-			end
+			build_cmd.long_desc("Build existing PKGBUILD. To download pkgbuild use 'install' instead")
+			add_install_option.call(build_cmd)
 			build_cmd.action do |*pkgbuild_dirs|
 				mkpkg=Archlinux::MakepkgList.new(pkgbuild_dirs, cache: nil)
 				mkpkg.build(install: build_cmd.data[:install])
@@ -87,6 +106,7 @@ Get infos on packages
 Install of update packages
 			EOS
 			install_cmd.data={install: true}
+			add_install_option.call(install_cmd)
 			install_cmd.options do |opt|
 				opt.on("-u", "--[no-]update", "Update existing packages too") do |v|
 					install_cmd.data[:update]=v
@@ -105,11 +125,6 @@ Install of update packages
 			install_cmd.options do |opt|
 				opt.on("--[no-]devel", "Also check/update devel packages") do |v|
 					install_cmd.data[:devel]=v
-				end
-			end
-			install_cmd.options do |opt|
-				opt.on("-i", "--[no-]install", "Install the package afterwards", "Defaults to #{install_cmd.data[:install]}") do |v|
-					install_cmd.data[:install]=v
 				end
 			end
 			install_cmd.argument_desc(packages: "packages names")
