@@ -61,12 +61,15 @@ module Archlinux
 				cmd.long_desc(<<-EOS)
 Search aur
 				EOS
-				cmd.argument_desc(search: "search term")
-				cmd.action do |search|
-					r=GlobalAurCache.search(search)
-					r.each do |pkg|
-						name_version="#{pkg["Name"]} (#{pkg["Version"]})"
-						SH.logger.info("#{name_version.color(:yellow)}: #{pkg["Description"]}")
+				cmd.argument_desc(search: "search terms")
+				cmd.action do |*search|
+					search.each do |s|
+						SH.logger.mark(s+":")
+						r=GlobalAurCache.search(s)
+						r.each do |pkg|
+							name_version="#{pkg["Name"]} (#{pkg["Version"]})"
+							SH.logger.info("#{name_version.color(:yellow)}: #{pkg["Description"]}")
+						end
 					end
 				end
 			end
