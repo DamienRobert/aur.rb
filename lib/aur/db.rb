@@ -306,13 +306,15 @@ module Archlinux
 		# the db. This is like the reverse of `update`. In particular be
 		# careful that this will delete newer versions or added versions
 		def clean(dry_run: true)
-			dir_files=dir_packages(packages: false).files
+			dir_pkgs=dir_packages(packages: false)
+			dir_files=dir_pkgs.files
 			db_files=files
 			to_remove=dir_files - db_files
 			if dry_run
 				to_remove
 			else
-				files.rm_pkgs(*to_remove)
+				# todo: rm_pkgs accept package names, not files
+				dir_pkgs.rm_pkgs(*to_remove)
 			end
 		end
 	end

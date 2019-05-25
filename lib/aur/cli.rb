@@ -144,16 +144,21 @@ Install of update packages
 			end
 		end
 
-		parser.add_command('pacman') do |pacman_cmd|
-			pacman_cmd.takes_commands(false)
-			pacman_cmd.short_desc("Launch pacman")
-			pacman_cmd.long_desc(<<-EOS)
+		%w(pacman makepkg nspawn mkarchroot makechrootpkg).each do |cmd|
+			parser.add_command(cmd) do |devtools_cmd|
+				devtools_cmd.takes_commands(false)
+				devtools_cmd.short_desc("Launch #{cmd}")
+				case cmd
+				when "pacman"
+					devtools_cmd.long_desc(<<-EOS)
 Launch pacman with a custom config file which makes the db accessible.
-			EOS
-			pacman_cmd.argument_desc(args: "pacman arguments")
-			pacman_cmd.action do |*args|
-				devtools=Archlinux.config.local_devtools
-				devtools.pacman(*args, sudo: @config.sudo)
+					EOS
+				end
+				devtools_cmd.argument_desc(args: "#{cmd} arguments")
+				devtools_cmd.action do |*args|
+					devtools=Archlinux.config.local_devtools
+					devtools.public_send(cmd,*args, sudo: @config.sudo)
+				end
 			end
 		end
 
