@@ -90,6 +90,7 @@ module Archlinux
 
 		def name_version
 			r=self.name
+			return r if r.nil?
 			version=self.version
 			r+="="+version.to_s if version
 			r

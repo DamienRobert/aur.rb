@@ -55,7 +55,6 @@ TODO:
 - use https://github.com/falconindy/pkgbuild-introspection/ to  speed up .SRCINFO
 - view only when updated/new + add trusted PKGBUILD
 - confirm before installing or updating pkgver (this is somewhat orthogonal to exiting when view return false since we may want to not view the files)
-- more commands for cli
 - tests
 - due to vercmp, we need to reset packages before pulling
   => use stash?
@@ -74,6 +73,8 @@ rpc.
 - in `sync_db` setup a simily local cache so that the packages don't get
 copied twice
 - prefetch gpg for signature
-- in db update, allow to be more atomic, same for clear
-- add --no-fetch and --fetch-only; and --no-add-to-db; and --buildopts="..."
+- more commands for cli:
+  - in db update, allow to be more atomic, same for clear
+  - add --no-fetch and --fetch-only; and --extra-db; and --buildopts="..."
+  - add 'package info/compare/list pkgs...'
 =end

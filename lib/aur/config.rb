@@ -191,7 +191,7 @@ module Archlinux
 
 		# note: since 'true' is frozen, we cannot extend it and keep a
 		# @sudo_loop_thread. Moreover we only want one sudo loop active, so we
-		# will call it ouselves
+		# will call it ourselves
 		def sudo(arg=true)
 			if dig(:sudo_loop, :active)
 				opts=dig(:sudo_loop).clone
@@ -289,6 +289,9 @@ module Archlinux
 					tools.sync_db(db.repo_name, install: %w(--needed) + ipkgs)
 				end
 			end
+		end
+
+		def parser(parser) #to add cli options in the config file
 		end
 	end
 

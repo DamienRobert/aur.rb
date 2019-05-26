@@ -208,7 +208,7 @@ Update the db according to the packages present in its folder
 				end
 				cmd.action do ||
 					db=Archlinux.config.db
-					paths, _packages=db.clean(dry_run: !cmd.data[:force])
+					paths=db.clean(dry_run: !cmd.data[:force])
 					if cmd.data[:force]
 						SH.logger.mark "Cleaned:"
 					else
@@ -245,6 +245,8 @@ Update the db according to the packages present in its folder
 				b.call(lvl, cmd) if b
 			end
 		end
+
+		@config.parser(parser)
 		
 		parser
 	end

@@ -201,10 +201,10 @@ module Archlinux
 			dir_packages_cls.packages
 		end
 
-		def package_files_cls(packages: true)
+		def package_files_cls
 			PackageFiles.new(*files, config: @config)
 		end
-		def package_files(packages: true)
+		def package_files
 			package_files_cls.packages
 		end
 
@@ -255,28 +255,27 @@ module Archlinux
 		end
 
 		def check_update(other=dir_packages)
-			up=self.packages.check_updates(other)
-			yield up if block_given?
-			refresh=up.select {|_k, u| u[:op]==:upgrade or u[:op]==:downgrade}
-			add=up.select {|_k, u| u[:op]==:install}
-			remove=up.select {|_k, u| u[:op]==:obsolete}
-			return {refresh: refresh, add: add, remove: remove}
+			self.packages.check_updates(other)
+			# yield up if block_given?
+			# refresh=up.select {|_k, u| u[:op]==:upgrade or u[:op]==:downgrade}
+			# add=up.select {|_k, u| u[:op]==:install}
+			# remove=up.select {|_k, u| u[:op]==:obsolete}
+			# return {refresh: refresh, add: add, remove: remove}
 		end
 
-		def show_updates(other=dir_packages)
-			check_update(other) do |c|
-				packages.show_updates(c, obsolete: true)
-			end
+		def show_updates(other=dir_packages, obsolete: true)
+			c=check_update(other)
+			packages.show_updates(c, obsolete: obsolete)
 		end
 
 		def update(other=dir_packages)
-			r=check_update(other)
-			add(*(r[:refresh].merge(r[:add])).map do |_k,v|
-				other[v[:out_pkg]].path
-			end)
+			c=check_update(other)
+			to_add=c.select {|_k, u| %i(upgrade downgrade install).include?(u[:op])}
+			to_rm=c.select {|_k, u| %i(obsolete).include?(u[:op])}
+			add(*to_add.map { |_k,v| other[v[:out_pkg]].path })
 			# remove(*(r[:remove].map {|_k,v| packages[v[:in_pkg]].file.shellescape}))
-			remove(*(r[:remove].map {|_k,v| Query.strip(v[:in_pkg])}))
-			r
+			remove(* to_rm.map {|_k,v| Query.strip(v[:in_pkg])})
+			c
 		end
 
 		# move/copy files to db and add them
