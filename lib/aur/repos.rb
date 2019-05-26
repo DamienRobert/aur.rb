@@ -203,7 +203,10 @@ module Archlinux
 			list=[]
 			@files.each do |file|
 				info={repo: file}
-				SH.run_simple("bsdtar -xOqf #{file.shellescape} .PKGINFO", chomp: :lines).each do |l|
+				SH.run_simple("bsdtar -xOqf #{file.shellescape} .PKGINFO", chomp: :lines) do |error|
+					SH.logger.info "Skipping #{file}: #{error}"
+					next
+				end.each do |l|
 					next if l=~/^#/
 					key, value=l.split(/\s*=\s*/,2)
 					key=key.to_sym
@@ -278,10 +281,15 @@ module Archlinux
 			files.each do |file|
 				path=Pathname.new(file)
 				# path=@dir+path if path.relative?
-				path.rm if path.exist?
+				if path.exist?
+					path.rm 
+					deleted << path
+				end
 				sig=Pathname.new("#{path}.sig")
-				sig.rm if sig.exist?
-				deleted << file
+				if sig.exist?
+					sig.rm 
+					deleted << sig
+				end
 			end
 			@packages=nil #we need to refresh the list.
 			deleted

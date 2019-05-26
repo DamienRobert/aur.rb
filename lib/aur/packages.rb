@@ -397,9 +397,9 @@ module Archlinux
 			return up.map {|_k, v| v[:out_pkg]}, up
 		end
 
-		def get_updates(l, log_level: true, obsolete: true, ignore: @ignore, rebuild: false)
+		def get_updates(l, log_level: true, ignore: @ignore, rebuild: false, **showopts)
 			c=check_updates(l, ignore: ignore)
-			show_updates(c, obsolete: obsolete, log_level: log_level)
+			show_updates(c, log_level: log_level, **showopts)
 			if rebuild
 				# keep all packages
 				to_build=c.select {|_k,v| v[:out_pkg]}
@@ -410,18 +410,23 @@ module Archlinux
 		end
 
 		#take the result of check_updates and pretty print them
-		def show_updates(r, obsolete: true, log_level: true)
-			require 'simplecolor'
+		def show_updates(r, show: [:upgrade, :downgrade, :obsolete, :install], no_show: [], log_level: true)
 			r.each do |k,v|
-				next if v[:op]==:equal
-				next if obsolete and v[:op]==:obsolete
+				next unless show.include?(v[:op]) and !no_show.include?(v[:op])
 				vin= v[:in] ? v[:in] : "(none)"
 				vout= v[:out] ? v[:out] : "(none)"
-				op = "->"; op="<-" if v[:op]==:downgrade
+				op=case v[:op]
+				when :downgrade
+					"<-"
+				when :upgrade, :install, :obsolete
+					"->"
+				when :equal
+					"="
+				end
 				extra=""
 				extra=" [#{v[:op]}]" if v[:op]!=:upgrade
 
-				SH.log(log_level, SimpleColor.color("  -> #{k}: #{vin} #{op} #{vout}#{extra}", :black))
+				SH.log(log_level, "  -> #{k}: #{vin} #{op} #{vout}#{extra}")
 			end
 		end
 
@@ -440,13 +445,13 @@ module Archlinux
 
 		# take a list of packages to install, return the new or updated
 		# packages to install with their dependencies
-		def install?(*packages, update: false, install_list: @install_list, log_level: true, log_level_verbose: :verbose, obsolete: true, ignore: @ignore, rebuild: false)
+		def install?(*packages, update: false, install_list: @install_list, log_level: true, log_level_verbose: :verbose, ignore: @ignore, rebuild: false, **showopts)
 			packages+=self.names if update
 			if install_list
 				ignore -= packages.map {|p| Query.strip(p)}
 				SH.log(log_level_verbose, "# Checking packages #{packages.join(', ')}", color: :bold)
 				new_pkgs=install_list.slice(*packages)
-				u, u_infos=get_updates(new_pkgs, log_level: log_level_verbose, obsolete: obsolete, ignore: ignore, rebuild: rebuild)
+				u, u_infos=get_updates(new_pkgs, log_level: log_level_verbose, ignore: ignore, rebuild: rebuild, **showopts)
 				# todo: update this when we have a better preference mechanism
 				# (then we will need to put @official in the install package class)
 				new=self.class.new(l.values).merge(new_pkgs)
@@ -455,7 +460,7 @@ module Archlinux
 				SH.log(log_level_verbose, "# Checking dependencies of #{u.join(', ')}", color: :bold) unless u.empty?
 				full=new.rget(*u)
 				SH.log(log_level, "New packages:", color: :bold)
-				full_updates, full_infos=get_updates(new.slice(*full), log_level: log_level, obsolete: obsolete, ignore: ignore, rebuild: rebuild=="full" ? true : false)
+				full_updates, full_infos=get_updates(new.slice(*full), log_level: log_level, ignore: ignore, rebuild: rebuild=="full" ? true : false, **showopts)
 				if rebuild and rebuild != "full" #we need to merge back u
 					full_updates |=u
 					full_infos.merge!(u_infos)

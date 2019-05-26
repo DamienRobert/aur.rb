@@ -263,15 +263,16 @@ module Archlinux
 			# return {refresh: refresh, add: add, remove: remove}
 		end
 
-		def show_updates(other=dir_packages, obsolete: true)
+		def show_updates(other=dir_packages, **showopts)
 			c=check_update(other)
-			packages.show_updates(c, obsolete: obsolete)
+			packages.show_updates(c, **showopts)
+			c
 		end
 
-		def update(other=dir_packages)
-			c=check_update(other)
-			to_add=c.select {|_k, u| %i(upgrade downgrade install).include?(u[:op])}
-			to_rm=c.select {|_k, u| %i(obsolete).include?(u[:op])}
+		def update(other=dir_packages, add_for: %i(upgrade downgrade install), rm_for: %i(obsolete), **showopts)
+			c=show_updates(other, **showopts)
+			to_add=c.select {|_k, u| add_for.include?(u[:op])}
+			to_rm=c.select {|_k, u| rm_for.include?(u[:op])}
 			add(*to_add.map { |_k,v| other[v[:out_pkg]].path })
 			# remove(*(r[:remove].map {|_k,v| packages[v[:in_pkg]].file.shellescape}))
 			remove(* to_rm.map {|_k,v| Query.strip(v[:in_pkg])})
