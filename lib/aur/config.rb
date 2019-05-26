@@ -47,6 +47,7 @@ module Archlinux
 					active: false, #do we use the chroot?
 					update: 'pacman -Syu --noconfirm', #how to update an existing chroot
 					packages: ['base-devel'], #the packages that are installed in the chroto
+					# It can make sense to add %w(python ruby nodejs go-pie rust git)...
 				},
 				default_packages_class: PackageList,
 				# default_install_list_class: AurMakepkgCache,

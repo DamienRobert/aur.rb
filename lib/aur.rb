@@ -50,27 +50,30 @@ files=pkgs.slice(*notneeded).map {|k,v| v.file}
 db.remove(*files)
 =end
 
-# TODO:
-# - use https://github.com/falconindy/pkgbuild-introspection/ to  speed up .SRCINFO
-# - view only when updated/new
-# - confirm before installing or updating pkgver (this is somewhat orthogonal to exiting when view return false since we may want to not view the files)
-# - more commands for cli
-# - tests
-# - due to vercmp, we need to reset packages before pulling
-#   => use stash?
-# - preference to decide which :provides to choose
-#   (and favorise local packages for provides)
-# - in `official` we need to also list packages provided by them, eg
-# libarchive provides libarchive.so (but libarchive.so does not exist
-# separately, but eg aurutils-git requires it)
-# - when using AurMakepkgCache, missing packages info are repeated several
-# times
-# - using tsort in rget won't do a breadth first search, which would reduce
-# the number of aur queries. With tsort packages are queried one by one.
-# - split Makepkg into a class for downloading/viewing/querying and the
-# class for installing. This will allow to support both github and the aur
-# rpc.
-# - in `sync_db` setup a simily local cache so that the packages don't get
-# copied twice
-# - add a 'build' option to cli install (build but don't install if
-# possible)
+=begin
+TODO:
+- use https://github.com/falconindy/pkgbuild-introspection/ to  speed up .SRCINFO
+- view only when updated/new + add trusted PKGBUILD
+- confirm before installing or updating pkgver (this is somewhat orthogonal to exiting when view return false since we may want to not view the files)
+- more commands for cli
+- tests
+- due to vercmp, we need to reset packages before pulling
+  => use stash?
+- preference to decide which :provides to choose
+  (and favorise local packages for provides)
+- in `official` we need to also list packages provided by them, eg
+libarchive provides libarchive.so (but libarchive.so does not exist
+separately, but eg aurutils-git requires it)
+- when using AurMakepkgCache, missing packages info are repeated several
+times
+- using tsort in rget won't do a breadth first search, which would reduce
+the number of aur queries. With tsort packages are queried one by one.
+- split Makepkg into a class for downloading/viewing/querying and the
+class for installing. This will allow to support both github and the aur
+rpc.
+- in `sync_db` setup a simily local cache so that the packages don't get
+copied twice
+- prefetch gpg for signature
+- in db update, allow to be more atomic, same for clear
+- add --no-fetch and --fetch-only; and --no-add-to-db; and --buildopts="..."
+=end

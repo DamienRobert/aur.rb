@@ -273,24 +273,28 @@ module Archlinux
 			@config&.sign(*@files, sign_name: sign_name, **opts)
 		end
 
-		# pass packages names to remove
-		def rm_pkgs(*pkgs)
+		def rm_files(*files)
 			deleted=[]
-			pkgs.each do |pkg_name|
-				pkg=packages.fetch(pkg_name, nil)
-				if pkg
-					path=pkg.path
-					path.rm if path.exist?
-					sig=Pathname.new("#{path}.sig")
-					sig.rm if sig.exist?
-					## This is not enough, because this does not update @versions
-					## so we need to refresh the list
-					# packages.delete(pkg_name)
-					deleted << pkg_name
-				end
+			files.each do |file|
+				path=Pathname.new(file)
+				# path=@dir+path if path.relative?
+				path.rm if path.exist?
+				sig=Pathname.new("#{path}.sig")
+				sig.rm if sig.exist?
+				deleted << file
 			end
 			@packages=nil #we need to refresh the list.
 			deleted
+		end
+
+		# pass packages names to remove
+		def rm_pkgs(*pkgs)
+			files=[]
+			pkgs.each do |pkg_name|
+				pkg=packages.fetch(pkg_name, nil)
+				files << pkg.path if pkg
+			end
+			rm_files(*files)
 		end
 
 		def clean(dry_run: true)

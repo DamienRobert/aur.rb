@@ -194,16 +194,18 @@ module Archlinux
 			@packages||=@config.to_packages(list)
 		end
 
-		def dir_packages(packages: true)
-			pkg_files=PackageFiles.from_dir(dir, config: @config)
-			pkg_files=pkg_files.packages if packages
-			pkg_files
+		def dir_packages_cls
+			PackageFiles.from_dir(dir, config: @config)
+		end
+		def dir_packages
+			dir_packages_cls.packages
 		end
 
+		def package_files_cls(packages: true)
+			PackageFiles.new(*files, config: @config)
+		end
 		def package_files(packages: true)
-			pkg_files=PackageFiles.new(*files, config: @config)
-			pkg_files=pkg_files.packages if packages
-			pkg_files
+			package_files_cls.packages
 		end
 
 		# sign the files in the db (return the list of signed file, by default
@@ -298,7 +300,7 @@ module Archlinux
 		# in clean_dir, we clean the dir packages which have a newer
 		# version (in the dir).
 		def clean_dir(dry_run: true)
-			files=dir_packages(packages: false)
+			files=dir_packages_cls
 			files.clean(dry_run: dry_run)
 		end
 
@@ -306,15 +308,14 @@ module Archlinux
 		# the db. This is like the reverse of `update`. In particular be
 		# careful that this will delete newer versions or added versions
 		def clean(dry_run: true)
-			dir_pkgs=dir_packages(packages: false)
+			dir_pkgs=dir_packages_cls
 			dir_files=dir_pkgs.files
 			db_files=files
 			to_remove=dir_files - db_files
 			if dry_run
 				to_remove
 			else
-				# todo: rm_pkgs accept package names, not files
-				dir_pkgs.rm_pkgs(*to_remove)
+				dir_pkgs.rm_files(*to_remove)
 			end
 		end
 	end
