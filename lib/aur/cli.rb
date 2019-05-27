@@ -255,6 +255,49 @@ Update the db according to the packages present in its folder
 			end
 		end
 
+		parser.add_command('pkgs') do |pkgs_cmd|
+			pkgs_cmd.add_command('list') do |cmd|
+				cmd.takes_commands(false)
+				cmd.short_desc("List packages")
+				cmd.options do |opt|
+					opt.on("-v", "--[no-]version", "Add the package version") do |v|
+						cmd.data[:version]=v
+					end
+				end
+				cmd.action do |*repos|
+					pkgs=PackageList.new
+					repos.each do |repo|
+						npkg=case repo
+						when "@db"
+							Archlinux.config.db.packages
+						when ":local"
+							LocalRepo.new.packages
+						else
+							if (m=repo.match(/^:(.*)\Z/))
+								Repo.new(m[1]).packages
+							else
+								path=Pathname.new(repo)
+								if path.file?
+									PackageFiles.new(path).packages
+								elsif path.dir?
+									PackageFiles.from_dir(path).packages
+								end
+							end
+						end
+						if npkg.nil?
+							SH.logger.warn "Unknown repo #{repo}"
+						else
+							pkgs.merge(npkg)
+						end
+					end
+					pkgs.keys.sort.each do |k|
+						k=Query.strip(k) unless cmd.data[:version]
+						SH.logger.info "- #{k}"
+					end
+				end
+			end
+		end
+
 		parser.add_command('sign') do |cmd|
 			cmd.takes_commands(false)
 			cmd.short_desc("Sign files")

@@ -130,6 +130,7 @@ module Archlinux
 		end
 	end
 
+	# can combined several repos
 	class RepoPkgs
 		extend CreateHelper
 		attr_accessor :list, :config
@@ -160,6 +161,7 @@ module Archlinux
 
 		def infos
 			#todo: this is essentially the same code as for db repo; factorize this?
+			list=[]
 			@dir.glob("*/desc").each do |desc|
 				pkg={repo: :local}; mode=nil
 				desc.read.each_line do |l|
@@ -179,7 +181,7 @@ module Archlinux
 
 		def packages(refresh=false)
 			@packages=nil if refresh
-			@packages ||= @config.to_packages(self.class.info(*list))
+			@packages ||= @config.to_packages(infos)
 		end
 	end
 
