@@ -165,6 +165,7 @@ module Archlinux
 			@dir.glob("*/desc").each do |desc|
 				pkg={repo: :local}; mode=nil
 				desc.read.each_line do |l|
+					l.chomp!
 					next if l.empty?
 					if (m=l.match(/^%([A-Z0-9]*)%$/))
 						mode=m[1].downcase.to_sym

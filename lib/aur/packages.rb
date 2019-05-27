@@ -139,6 +139,13 @@ module Archlinux
 			@versions.keys
 		end
 
+		def list(version=false)
+			l= version ? keys.sort : names.sort
+			l.each do |pkg|
+				SH.logger.info "- #{pkg}"
+			end
+		end
+
 		def name_of(pkg)
 			pkg.name_version
 		end

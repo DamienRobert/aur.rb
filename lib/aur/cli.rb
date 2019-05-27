@@ -174,10 +174,7 @@ Launch pacman with a custom config file which makes the db accessible.
 				cmd.action do ||
 					db=Archlinux.config.db
 					SH.logger.mark "#{db.file}:"
-					db.packages.each_key do |k|
-						k=Query.strip(k) unless cmd.data[:version]
-						SH.logger.info "- #{k}"
-					end
+					db.packages.list(cmd.data[:version])
 				end
 			end
 
@@ -270,6 +267,8 @@ Update the db according to the packages present in its folder
 						npkg=case repo
 						when "@db"
 							Archlinux.config.db.packages
+						when "@dbdir"
+							Archlinux.config.db.dir_packages
 						when ":local"
 							LocalRepo.new.packages
 						else
@@ -279,7 +278,7 @@ Update the db according to the packages present in its folder
 								path=Pathname.new(repo)
 								if path.file?
 									PackageFiles.new(path).packages
-								elsif path.dir?
+								elsif path.directory?
 									PackageFiles.from_dir(path).packages
 								end
 							end
@@ -290,10 +289,7 @@ Update the db according to the packages present in its folder
 							pkgs.merge(npkg)
 						end
 					end
-					pkgs.keys.sort.each do |k|
-						k=Query.strip(k) unless cmd.data[:version]
-						SH.logger.info "- #{k}"
-					end
+					pkgs.list(cmd.data[:version])
 				end
 			end
 		end
