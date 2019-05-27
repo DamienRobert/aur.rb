@@ -262,34 +262,18 @@ Update the db according to the packages present in its folder
 					end
 				end
 				cmd.action do |*repos|
-					pkgs=PackageList.new
-					repos.each do |repo|
-						npkg=case repo
-						when "@db"
-							Archlinux.config.db.packages
-						when "@dbdir"
-							Archlinux.config.db.dir_packages
-						when ":local"
-							LocalRepo.new.packages
-						else
-							if (m=repo.match(/^:(.*)\Z/))
-								Repo.new(m[1]).packages
-							else
-								path=Pathname.new(repo)
-								if path.file?
-									PackageFiles.new(path).packages
-								elsif path.directory?
-									PackageFiles.from_dir(path).packages
-								end
-							end
-						end
-						if npkg.nil?
-							SH.logger.warn "Unknown repo #{repo}"
-						else
-							pkgs.merge(npkg)
-						end
-					end
+					pkgs=PackageClass.packages(*repos)
 					pkgs.list(cmd.data[:version])
+				end
+			end
+
+			pkgs_cmd.add_command('compare') do |cmd|
+				cmd.takes_commands(false)
+				cmd.short_desc("Compare packages")
+				cmd.long_desc("Use '--' to separate the two list")
+				cmd.action do |*repos|
+					pkg1, pkg2 = PackageClass.packages_list(*repos)
+					pkg1.get_updates(pkg2)
 				end
 			end
 		end

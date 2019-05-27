@@ -2,6 +2,55 @@ require 'tsort'
 require 'time'
 
 module Archlinux
+
+	class PackageClass #meta class for class that hold package infos
+		def self.packages(*repos)
+			pkgs=PackageList.new
+			repos.each do |repo|
+				npkg=case repo
+				when "@db"
+					Archlinux.config.db.packages
+				when "@dbdir"
+					Archlinux.config.db.dir_packages
+				when ":local"
+					LocalRepo.new.packages
+				else
+					if (m=repo.match(/^:(.*)\Z/))
+						Repo.new(m[1]).packages
+					else
+						path=Pathname.new(repo)
+						if path.file?
+							PackageFiles.new(path).packages
+						elsif path.directory?
+							PackageFiles.from_dir(path).packages
+						end
+					end
+				end
+				if npkg.nil?
+					SH.logger.warn "Unknown repo #{repo}"
+				else
+					pkgs.merge(npkg)
+				end
+			end
+			pkgs
+		end
+
+		def self.packages_list(*repos)
+			if repos.length == 2
+				pkg1=packages(*repos[0])
+				pkg2=packages(*repos[1])
+			else
+				i=repos.index('::')
+				unless i
+					SH.logger.warn "Only one list given"
+					i=0
+				end
+				pkg1=packages(*repos[0...i])
+				pkg2=packages(*repos[i+1..-1])
+			end
+			return pkg1, pkg2
+		end
+	end
 	PackageError=Class.new(ArchlinuxError)
 	class Package
 		def self.create(v)
