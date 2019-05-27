@@ -321,7 +321,7 @@ module Archlinux
 			if dry_run
 				to_remove
 			else
-				dir_pkgs.rm_files(*to_remove)
+				PackageFiles.rm_files(*to_remove, dir: self.dir)
 			end
 		end
 	end
