@@ -276,11 +276,11 @@ module Archlinux
 			@config&.sign(*@files, sign_name: sign_name, **opts)
 		end
 
-		def rm_files(*files)
+		def self.rm_files(*files, dir: nil)
 			deleted=[]
 			files.each do |file|
 				path=Pathname.new(file)
-				# path=@dir+path if path.relative?
+				path=dir+path if path.relative? and dir
 				if path.exist?
 					path.rm 
 					deleted << path
@@ -291,7 +291,7 @@ module Archlinux
 					deleted << sig
 				end
 			end
-			@packages=nil #we need to refresh the list.
+			SH.logger.verbose2 "Deleted: #{deleted}"
 			deleted
 		end
 
@@ -302,7 +302,8 @@ module Archlinux
 				pkg=packages.fetch(pkg_name, nil)
 				files << pkg.path if pkg
 			end
-			rm_files(*files)
+			@packages=nil #we need to refresh the list.
+			self.class.rm_files(*files)
 		end
 
 		def clean(dry_run: true)

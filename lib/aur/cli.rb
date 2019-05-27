@@ -163,6 +163,24 @@ Launch pacman with a custom config file which makes the db accessible.
 		end
 
 		parser.add_command('db') do |db_cmd|
+			db_cmd.add_command('list') do |cmd|
+				cmd.takes_commands(false)
+				cmd.short_desc("List the content of the db")
+				cmd.options do |opt|
+					opt.on("-v", "--[no-]version", "Add the package version") do |v|
+						cmd.data[:version]=v
+					end
+				end
+				cmd.action do ||
+					db=Archlinux.config.db
+					SH.logger.mark "#{db.file}:"
+					db.packages.each_key do |k|
+						k=Query.strip(k) unless cmd.data[:version]
+						SH.logger.info "- #{k}"
+					end
+				end
+			end
+
 			db_cmd.add_command('update') do |cmd|
 				cmd.takes_commands(false)
 				cmd.short_desc("Update the db")
@@ -195,6 +213,24 @@ Update the db according to the packages present in its folder
 				cmd.action do |*files|
 					db=Archlinux.config.db
 					db.add_to_db(files, update: !cmd.data[:force])
+				end
+			end
+
+			db_cmd.add_command('rm') do |cmd|
+				cmd.takes_commands(false)
+				cmd.short_desc("Remove packages from db")
+				cmd.options do |opt|
+					opt.on("-f", "--[no-]force", "Also remove the package themselves") do |v|
+						cmd.data[:force]=v
+					end
+				end
+				cmd.action do |*files|
+					db=Archlinux.config.db
+					if cmd.data[:force]
+						db.rm_from_db(*files)
+					else
+						db.remove(*files)
+					end
 				end
 			end
 

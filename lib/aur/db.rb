@@ -157,7 +157,6 @@ module Archlinux
 					new
 				end
 			end
-			files
 		end
 
 		def add(*files, cmd: :'repo-add', default_opts:[], sign: @config&.use_sign?(:db), force_sign: false, **opts)
@@ -247,7 +246,7 @@ module Archlinux
 		def resign(**opts)
 			signed_files=sign_files(**opts)
 			add(*signed_files) #note that this may try to sign again, but since the signature exists it won't launch gpg
-			sign_db(**opts) #idem, normally the db will be signed by repo-add -v, but in case the signature was turned off in the config, this forces the signautre
+			sign_db(**opts) #idem, normally the db will be signed by repo-add -v, but in case the signature was turned off in the config, this forces the signature
 		end
 
 		def check
@@ -295,6 +294,13 @@ module Archlinux
 			SH.logger.mark "Updating #{pkgs} in #{self}"
 			cp_pkgs=move_to_db(*pkgs, op: op)
 			add(*cp_pkgs)
+		end
+
+		#remove from db and also remove the package files
+		def rm_from_db(*pkgs)
+			to_rm=packages.get_packages(*pkgs)
+			PackageFiles.rm_files(*to_rm.map {|pkg| pkg.path}, dir: self.dir)
+			remove(*pkgs)
 		end
 
 		# in clean_dir, we clean the dir packages which have a newer

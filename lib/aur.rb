@@ -75,6 +75,6 @@ copied twice
 - prefetch gpg for signature
 - more commands for cli:
   - in db update, allow to be more atomic, same for clear
-  - add --no-fetch and --fetch-only; and --extra-db; and --buildopts="..."
+  - add --no-fetch and --fetch=only; and --extra-db=; and --buildopts="..."
   - add 'package info/compare/list pkgs...'
 =end
