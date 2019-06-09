@@ -501,13 +501,13 @@ module Archlinux
 
 		# take a list of packages to install, return the new or updated
 		# packages to install with their dependencies
-		def install?(*packages, update: false, install_list: @install_list, log_level: true, log_level_verbose: :verbose, ignore: @ignore, rebuild: false, **showopts)
+		def install?(*packages, update: false, install_list: @install_list, log_level: true, log_level_verbose: :verbose, ignore: @ignore, rebuild: false, no_show: [:obsolete], **showopts)
 			packages+=self.names if update
 			if install_list
 				ignore -= packages.map {|p| Query.strip(p)}
 				SH.log(log_level_verbose, "# Checking packages #{packages.join(', ')}", color: :bold)
 				new_pkgs=install_list.slice(*packages)
-				u, u_infos=get_updates(new_pkgs, log_level: log_level_verbose, ignore: ignore, rebuild: rebuild, **showopts)
+				u, u_infos=get_updates(new_pkgs, log_level: log_level_verbose, ignore: ignore, rebuild: rebuild, no_show: no_show, **showopts)
 				# todo: update this when we have a better preference mechanism
 				# (then we will need to put @official in the install package class)
 				new=self.class.new(l.values).merge(new_pkgs)
@@ -516,7 +516,7 @@ module Archlinux
 				SH.log(log_level_verbose, "# Checking dependencies of #{u.join(', ')}", color: :bold) unless u.empty?
 				full=new.rget(*u)
 				SH.log(log_level, "New packages:", color: :bold)
-				full_updates, full_infos=get_updates(new.slice(*full), log_level: log_level, ignore: ignore, rebuild: rebuild=="full" ? true : false, **showopts)
+				full_updates, full_infos=get_updates(new.slice(*full), log_level: log_level, ignore: ignore, rebuild: rebuild=="full" ? true : false, no_show: no_show, **showopts)
 				if rebuild and rebuild != "full" #we need to merge back u
 					full_updates |=u
 					full_infos.merge!(u_infos)

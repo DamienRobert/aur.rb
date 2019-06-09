@@ -65,6 +65,7 @@ libarchive provides libarchive.so (but libarchive.so does not exist
 separately, but eg aurutils-git requires it)
 - when using AurMakepkgCache, missing packages info are repeated several
 times
+- replace AurMakepkgCache with a more generic aggregater
 - using tsort in rget won't do a breadth first search, which would reduce
 the number of aur queries. With tsort packages are queried one by one.
 - split Makepkg into a class for downloading/viewing/querying and the
@@ -73,6 +74,7 @@ rpc.
 - in `sync_db` setup a simily local cache so that the packages don't get
 copied twice
 - prefetch gpg for signature
+- check if splitpackages are handled correctly
 - more commands for cli:
   - in db update, allow to be more atomic, same for clear
   - add --no-fetch and --fetch=only; and --extra-db=; and --buildopts="..."
