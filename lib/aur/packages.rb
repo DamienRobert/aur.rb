@@ -14,6 +14,17 @@ module Archlinux
 					Archlinux.config.db.dir_packages
 				when ":local"
 					LocalRepo.new.packages
+				when /^@get/, /^@rget/
+					new=Archlinux.config.install_list
+					m=repo.match(/^@r?get\((.*)\)/)
+					l=m[1].split(',')
+					#require 'pry'; binding.pry
+					if repo =~ /^@rget/
+						new.rget(*l)
+					else
+						new.get(*l)
+					end
+					new
 				else
 					if (m=repo.match(/^:(.*)\Z/))
 						Repo.new(m[1]).packages
@@ -466,6 +477,7 @@ module Archlinux
 		end
 
 		#take the result of check_updates and pretty print them
+		#no_show has priority over :show
 		def show_updates(r, show: [:upgrade, :downgrade, :obsolete, :install], no_show: [], log_level: true)
 			r.each do |k,v|
 				next unless show.include?(v[:op]) and !no_show.include?(v[:op])

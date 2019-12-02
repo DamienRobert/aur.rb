@@ -130,16 +130,24 @@ Install of update packages
 					install_cmd.data[:devel]=v
 				end
 			end
+			install_cmd.options do |opt|
+				opt.on("--[no-]obsolete", "Also show obsolete packages", "Not that you will get false obsolete packages unless you specifically upgrade everything") do |v|
+					install_cmd.data[:obsolete]=v
+				end
+			end
 			install_cmd.argument_desc(packages: "packages names")
 			install_cmd.action do |*packages|
 				if install_cmd.data[:devel]
 					Archlinux.config[:default_install_list_class]=AurMakepkgCache
 				end
 				aur=Archlinux.config.default_packages
+				opts={update: install_cmd.data[:update], rebuild: install_cmd.data[:rebuild]}
+				opts[:no_show]=[] if install_cmd.data[:obsolete]
 				if install_cmd.data[:check]
-					aur.install?(*packages, update: install_cmd.data[:update], rebuild: install_cmd.data[:rebuild])
+					aur.install?(*packages, **opts)
 				else
-					aur.install(*packages, update: install_cmd.data[:update], rebuild: install_cmd.data[:rebuild], install: install_cmd.data[:install])
+					opts[:install]=install_cmd.data[:install]
+					aur.install(*packages, **opts)
 				end
 			end
 		end
@@ -170,11 +178,20 @@ Launch pacman with a custom config file which makes the db accessible.
 					opt.on("-v", "--[no-]version", "Add the package version") do |v|
 						cmd.data[:version]=v
 					end
+					opt.on("-q", "--quiet", "Machine mode") do |v|
+						cmd.data[:quiet]=v
+					end
 				end
 				cmd.action do ||
 					db=Archlinux.config.db
-					SH.logger.mark "#{db.file}:"
-					db.packages.list(cmd.data[:version])
+					if cmd.data[:quiet]
+						pkgs=db.packages
+						l= cmd.data[:version] ? pkgs.keys.sort : pkgs.names.sort
+						SH.logger.info l.join(' ')
+					else
+						SH.logger.mark "#{db.file}:"
+						db.packages.list(cmd.data[:version])
+					end
 				end
 			end
 
@@ -256,6 +273,7 @@ Update the db according to the packages present in its folder
 			pkgs_cmd.add_command('list') do |cmd|
 				cmd.takes_commands(false)
 				cmd.short_desc("List packages")
+				cmd.long_desc("The listed package can be '@db' (the current db), '@dbdir' (the packages in the db directory), ':core' (a pacman repo name), :local (the local repo), a file (/var/cache/pacman/pkg/linux-5.3.13.1-1-x86_64.pkg.tar.xz) or a package dir (/var/cache/pacman/pkg); @get(foo1,foo2) (query the aur), @rget(foo1,foo2) (recursively query the aur) ")
 				cmd.options do |opt|
 					opt.on("-v", "--[no-]version", "Add the package version") do |v|
 						cmd.data[:version]=v
@@ -270,7 +288,11 @@ Update the db according to the packages present in its folder
 			pkgs_cmd.add_command('compare') do |cmd|
 				cmd.takes_commands(false)
 				cmd.short_desc("Compare packages")
-				cmd.long_desc("Use '--' to separate the two list")
+				cmd.long_desc(<<-EOS)
+					Use '--' to separate the two lists
+					Exemple: `compare @db -- @dbdir` is essentially the same as `db update -c`
+					Exemple: `compare @db -- @get(yay)` is like checking for a yay update
+				EOS
 				cmd.action do |*repos|
 					pkg1, pkg2 = PackageClass.packages_list(*repos)
 					pkg1.get_updates(pkg2)

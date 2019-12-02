@@ -210,7 +210,7 @@ module Archlinux
 			Archlinux.create_class(
 				install ? @opts[:default_install_packages_class] :
 				@opts[:default_packages_class],
-				l)
+				l, config: self)
 		end
 
 		#:package, :db
