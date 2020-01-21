@@ -143,7 +143,7 @@ module Archlinux
 	class AurQueryCache < AurQueryCustom
 
 		attr_accessor :search_cache, :info_cache
-		def initialize(*args)
+		def initialize(*args,**kwds)
 			super
 			@search_cache={}
 			@info_cache={}
