@@ -31,12 +31,12 @@ module Archlinux
 		end
 	end
 
-	def self.create_class(klass, *parameters, &b)
+	def self.create_class(klass, *parameters, **kw, &b)
 		klass=Archlinux.const_get(klass) if klass.is_a?(Symbol)
 		if klass.is_a?(Proc)
-			klass.call(*parameters, &b)
+			klass.call(*parameters, **kw, &b)
 		else
-			klass.new(*parameters, &b)
+			klass.new(*parameters, **kw, &b)
 		end
 	end
 

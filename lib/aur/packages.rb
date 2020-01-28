@@ -381,7 +381,7 @@ module Archlinux
 
 		# this is like a 'restrict' operation
 		def slice(*args)
-			self.class.new(l.slice(*get(*args)))
+			self.class.new(l.slice(*get(*args)), **{})
 		end
 
 		# get children (non recursive)

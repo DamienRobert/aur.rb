@@ -38,7 +38,7 @@ module Archlinux
 	# cache aur queries
 	class AurCache < InstallPackageList
 
-		def initialize(*args)
+		def initialize(*args, **kw)
 			super
 			@ext_query=method(:ext_query)
 			#@query_ignore=AurPackageList.official
