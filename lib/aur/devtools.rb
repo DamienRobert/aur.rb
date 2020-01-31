@@ -115,7 +115,7 @@ module Archlinux
 					opts[:Server].each do |server|
 						server.match(%r!file://(.*)!) do |m|
 							@opts[:bind_ro]||=[]
-							@opts[:bind_ro] << URI.unescape(m[1])
+							@opts[:bind_ro] << URI.decode_www_form_component(m[1])
 						end
 					end
 				end
