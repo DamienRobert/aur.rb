@@ -118,7 +118,7 @@ module Archlinux
 			aur=self.db(false)
 			if aur and !pacman[:repos].include?(aur.repo_name)
 				require 'uri'
-				pacman[:repos][aur.repo_name]={Server: ["file://#{URI.encode_www_form_component(aur.dir.to_s)}"]}
+				pacman[:repos][aur.repo_name]={Server: ["file://#{DR::URI.escape(aur.dir.to_s)}"]}
 			end
 			pacman
 		end
