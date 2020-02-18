@@ -1,6 +1,6 @@
 require 'forwardable'
 require 'dr/base/utils'
-require 'dr/base/uri' # for DR::URI.escape
+require 'dr/base/uri' # for DR::URIEscape.escape
 require 'shell_helpers'
 require 'dr/ruby_ext/core_ext'
 
