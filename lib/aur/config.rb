@@ -237,6 +237,7 @@ module Archlinux
 				end
 			names=signs.select {|s| s.is_a?(String)}
 			names = false if names.empty? and ! signs.any?
+			return names
 		end
 
 		# return the files that were signed
