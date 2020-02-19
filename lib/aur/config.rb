@@ -58,9 +58,11 @@ module Archlinux
 				config_files: {
 					default: {
 						pacman: "/etc/pacman.conf", #default pacman-conf
+						makepkg: "/etc/makepkg.conf",
 					},
 					chroot: {
 						pacman: "/usr/share/devtools/pacman-extra.conf", #pacman.conf for chroot build
+						makepkg: "/usr/share/devtools/makepkg-x86_64.conf",
 					},
 					local: {
 						pacman: "/etc/pacman.conf", # pacman-conf for local makepkg build
@@ -134,10 +136,11 @@ module Archlinux
 		def chroot_devtools
 			unless @chroot_devtools
 				devtools_pacman=PacmanConf.new(get_config_file(:pacman, type: :chroot))
+				makepkg_conf=get_config_file(:makepkg, type: :chroot)
 				my_pacman=default_pacman_conf
 				devtools_pacman[:repos].merge!(my_pacman.non_official_repos)
 				devtools_pacman=setup_pacman_conf(devtools_pacman)
-				@chroot_devtools = Devtools.new(pacman_conf: devtools_pacman, config: self)
+				@chroot_devtools = Devtools.new(pacman_conf: devtools_pacman, makepkg_conf: makepkg_conf, config: self)
 			end
 			@chroot_devtools
 		end
@@ -145,8 +148,9 @@ module Archlinux
 		def local_devtools
 			unless @local_devtools
 				makepkg_pacman=get_config_file(:pacman, type: :local)
+				makepkg_conf=get_config_file(:makepkg, type: :local)
 				makepkg_pacman=setup_pacman_conf(makepkg_pacman)
-				@local_devtools = Devtools.new(pacman_conf: makepkg_pacman, config: self)
+				@local_devtools = Devtools.new(pacman_conf: makepkg_pacman, makepkg_conf: makepkg_conf, config: self)
 			end
 			@local_devtools
 		end
@@ -283,10 +287,8 @@ module Archlinux
 				if names.empty?
 					launch(:gpg, *cargs)
 				else
-					names.each do |name|
-						args=['-u', name]+cargs
-						launch(:gpg, *args)
-					end
+					args=names.map { |name| ['-u', name] }.flatten+cargs
+					launch(:gpg, *args)
 				end
 			end
 		end
