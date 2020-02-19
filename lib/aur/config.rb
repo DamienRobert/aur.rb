@@ -223,6 +223,18 @@ module Archlinux
 			end
 		end
 
+		# output a list of sign names, or [] if we want to sign with the default sign name, false if we don't
+		def sign_names
+			opt_sign=@opts[:sign]
+			signs=if opt_sign.is_a?(Hash)
+					opt_sign.values
+				else
+					[*opt_sign]
+				end
+			names=signs.select {|s| s.is_a?(String)}
+			names = false if names.empty? and ! signs.any?
+		end
+
 		# return the files that were signed
 		def sign(*files, sign_name: nil, force: false)
 			sign_name=use_sign?(sign_name) if sign_name.is_a?(Symbol)
@@ -262,6 +274,21 @@ module Archlinux
 
 		def install_list
 			@install_list ||= Archlinux.create_class(@opts[:default_install_list_class], config: self)
+		end
+
+		def pre_install(*args, **opts)
+			names=sign_names
+			if names
+				cargs=["--detach-sign", "-o", "/dev/null", "/dev/null"]
+				if names.empty?
+					launch(:gpg, *cargs)
+				else
+					names.each do |name|
+						args=['-u', name]+cargs
+						launch(:gpg, *args)
+					end
+				end
+			end
 		end
 
 		def post_install(pkgs, install: false, **opts)

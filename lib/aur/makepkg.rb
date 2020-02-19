@@ -418,6 +418,7 @@ module Archlinux
 
 		def build(*args, chroot: @config.dig(:chroot, :active), install: false, **opts)
 			mkarchroot if chroot
+			@config.pre_install(*args, makepkg_list: self, install: install, **opts)
 			built=@l.values.map do |l|
 				l.build(*args, chroot: chroot, **opts)
 			end
@@ -426,9 +427,19 @@ module Archlinux
 			built
 		end
 
+		# Note that in build @config.{pre,post}_install is called
+		def pre_build(*args, **opts)
+		end
+
+		def post_build(*args, **opts)
+		end
+
+
 		def install(*args, view: true, **opts)
 			r=get(view: view)
+			pre_build(*args, **opts)
 			build(*args, **opts) if r
+			post_build(*args, **opts)
 		end
 	end
 end
