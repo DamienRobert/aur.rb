@@ -128,10 +128,10 @@ module Archlinux
 			@file.dirname
 		end
 
-		def call(*args)
-			@config.launch(*args) do |*args|
+		def call(*args, **opts)
+			@config.launch(*args, **opts) do |*a, **o|
 				dir.chdir do
-					SH.sh(*args)
+					SH.sh(*a, **o)
 				end
 			end
 		end
