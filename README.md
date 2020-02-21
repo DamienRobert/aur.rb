@@ -46,6 +46,6 @@ With this feature it is easy to simulate `checkupdates` too.
 
 ## Copyright
 
-Copyright © 2018 Damien Robert
+Copyright © 2018–2020 Damien Robert
 
 MIT License. See [LICENSE.txt](./LICENSE.txt) for details.
