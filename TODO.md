@@ -21,6 +21,8 @@ rpc.
 - confirm before installing or updating pkgver (this is somewhat orthogonal to exiting when view return false since we may want to not view the files)
 - due to vercmp, we need to reset packages before pulling
   => use stash?
+- allow to check for packages that are moved from aur to the official db
+    and conversely
 
 # Bugs
 
