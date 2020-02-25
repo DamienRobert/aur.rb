@@ -1,4 +1,3 @@
-require 'aur/config'
 require 'aur/devtools'
 require 'aur/packages'
 require 'uri'

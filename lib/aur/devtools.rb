@@ -1,5 +1,3 @@
-require 'aur/config'
-
 module Archlinux
 	class PacmanConf
 		def self.create(v, config: Archlinux.config)
