@@ -3,9 +3,10 @@
 * [Homepage](https://github.com/DamienRobert/aur.rb#readme)
 * [Issues](https://github.com/DamienRobert/aur.rb/issues)
 * [Documentation](http://rubydoc.info/gems/aur.rb)
-* [Email](mailto:Damien.Olivier.Robert+gems at gmail.com)
+* [Email](mailto:Damien.Olivier.Robert+gems@gmail.com)
 
 [![Gem Version](https://img.shields.io/gem/v/aur.rb.svg)](https://rubygems.org/gems/aur.rb)
+[![Ruby test result](https://github.com/DamienRobert/aur.rb/workflows/Ruby/badge.svg)](https://github.com/DamienRobert/aur.rb/actions?query=workflow%3ARuby)
 
 ## Description
 
@@ -16,7 +17,9 @@ installation.
 
 ## Examples
 
+    ~~~ ruby
     require 'aur.rb'
+    ~~~
 
 ## Requirements
 
@@ -48,4 +51,4 @@ With this feature it is easy to simulate `checkupdates` too.
 
 Copyright © 2018–2020 Damien Robert
 
-MIT License. See [LICENSE.txt](./LICENSE.txt) for details.
+MIT License. See [`LICENSE.txt`](LICENSE.txt) for details.

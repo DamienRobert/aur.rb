@@ -1,3 +1,9 @@
+## Uncomment to use `rake` directly rather than `bundle exec rake`
+#begin
+#  require 'bundler/setup'
+#rescue LoadError => e
+#  warn "Could not setup bundler: #{e.message}"
+#end
 require 'rake'
 
 require 'rake/testtask'
@@ -15,6 +21,7 @@ rescue LoadError => e
     warn e.message
   end
 end
+desc 'Generate docs'
 task :doc => :yard
 
 begin
@@ -24,3 +31,4 @@ rescue LoadError => e
   warn e.message
 end
 
+task :default => :test

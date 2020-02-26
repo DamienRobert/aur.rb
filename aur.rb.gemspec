@@ -33,6 +33,7 @@ Gem::Specification.new do |gem|
     end
   end
   gem.files = glob[gemspec['files']] if gemspec['files']
+  gem.files = gem.files + gemspec['extra_files'] if gemspec['extra_files']
 
   gem.executables = gemspec.fetch('executables') do
     glob['bin/*'].map { |path| File.basename(path) }
