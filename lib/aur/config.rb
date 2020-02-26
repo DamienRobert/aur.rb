@@ -325,6 +325,6 @@ module Archlinux
 		end
 	end
 
-	self.singleton_class.attr_accessor :config
+	self.singleton_class.send :attr_accessor, :config
 	@config ||= Config.new("aur.rb")
 end
