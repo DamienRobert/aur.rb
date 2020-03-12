@@ -281,15 +281,15 @@ module Archlinux
 			@install_list ||= Archlinux.create_class(@opts[:default_install_list_class], config: self)
 		end
 
-		def pre_install(*args, **opts)
+		def pre_install(*_args, **_opts)
 			names=sign_names
 			if names
 				cargs=["--detach-sign", "-o", "/dev/null", "/dev/null"]
 				if names.empty?
-					launch(:gpg, *cargs)
+					launch(:gpg, *cargs, method: :sh)
 				else
 					args=names.map { |name| ['-u', name] }.flatten+cargs
-					launch(:gpg, *args)
+					launch(:gpg, *args, method: :sh)
 				end
 			end
 		end

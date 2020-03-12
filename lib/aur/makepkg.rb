@@ -416,8 +416,8 @@ module Archlinux
 		end
 
 		def build(*args, chroot: @config.dig(:chroot, :active), install: false, **opts)
-			mkarchroot if chroot
 			@config.pre_install(*args, makepkg_list: self, install: install, **opts)
+			mkarchroot if chroot
 			built=@l.values.map do |l|
 				l.build(*args, chroot: chroot, **opts)
 			end
