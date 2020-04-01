@@ -223,10 +223,13 @@ Update the db according to the packages present in its folder
 					opt.on("-f", "--[no-]force", "Force adding files that are older than the ones in the db") do |v|
 						cmd.data[:force]=v
 					end
+					opt.on("--[no-]force-sign", "Force resigning the packages in the db, even if there is already a signature") do |v|
+						cmd.data[:force_sign]=v
+					end
 				end
 				cmd.action do |*files|
 					db=Archlinux.config.db
-					db.add_to_db(files, update: !cmd.data[:force])
+					db.add_to_db(files, update: !cmd.data[:force], force_sign: cmd.data[:force_sign])
 				end
 			end
 
@@ -273,7 +276,7 @@ Update the db according to the packages present in its folder
 			pkgs_cmd.add_command('list') do |cmd|
 				cmd.takes_commands(false)
 				cmd.short_desc("List packages")
-				cmd.long_desc("The listed package can be '@db' (the current db), '@dbdir' (the packages in the db directory), ':core' (a pacman repo name), :local (the local repo), a file (/var/cache/pacman/pkg/linux-5.3.13.1-1-x86_64.pkg.tar.xz) or a package dir (/var/cache/pacman/pkg); @get(foo1,foo2) (query the aur), @rget(foo1,foo2) (recursively query the aur) ")
+				cmd.long_desc("The listed package can be '@db' (the current db), '@dbdir' (the packages in the db directory), ':core' (a pacman repo name), :local (the local repo), a file (/var/cache/pacman/pkg/linux-5.3.13.1-1-x86_64.pkg.tar.xz) or a package dir (/var/cache/pacman/pkg); @get(foo1,foo2) (query the aur), @rget(foo1,foo2) (recursively query the aur); db@[r]get (query our db) ")
 				cmd.options do |opt|
 					opt.on("-v", "--[no-]version", "Add the package version") do |v|
 						cmd.data[:version]=v

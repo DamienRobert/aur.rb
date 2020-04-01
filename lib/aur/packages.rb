@@ -14,16 +14,17 @@ module Archlinux
 					Archlinux.config.db.dir_packages
 				when ":local"
 					LocalRepo.new.packages
-				when /^@get/, /^@rget/
-					new=Archlinux.config.install_list
-					m=repo.match(/^@r?get\((.*)\)/)
-					l=m[1].split(',')
-					#require 'pry'; binding.pry
-					if repo =~ /^@rget/
-						new.rget(*l)
+				when /^(db)?@(r)?get\((.*)\)/
+				  recursive=$2; querier=$1; query=$3
+				  if querier == "db"
+					  new=Archlinux.config.db.packages
+					elsif querier == nil
+					  new=Archlinux.config.install_list
 					else
-						new.get(*l)
+					  SH.logger.warn "Unknown querier: #{querier}"
 					end
+					l=query.split(',')
+					recursive ? new.rget(*l) : new.get(*l)
 					new
 				else
 					if (m=repo.match(/^:(.*)\Z/))
@@ -281,6 +282,15 @@ module Archlinux
 				r[pkg]=@l[versions[v]]
 			end
 			r
+		end
+
+		def graph(mode=@children_mode)
+		  require 'dr/base/graph'
+		  g=DR::Graph.new
+		  @l.each do |name, pkg|
+		    g << {name => pkg.dependencies(mode)}
+		  end
+		  g
 		end
 
 		# select the most appropriate match (does not use ext_query), using #query

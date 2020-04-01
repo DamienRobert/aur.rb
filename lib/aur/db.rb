@@ -159,6 +159,10 @@ module Archlinux
 			end
 		end
 
+    # Note, add_to_db already copies existing signatures, and then call
+    # `add`. In `add` we recheck for signatures, and add missing ones.
+    # But corrupted existing signatures are left, except if we use
+    # force_sign to regenerate them.
 		def add(*files, cmd: :'repo-add', default_opts:[], sign: @config&.use_sign?(:db), force_sign: false, **opts)
 			default_opts+=['-s', '-v'] if sign
 			default_opts+=['--key', sign] if sign.is_a?(String)
@@ -281,7 +285,7 @@ module Archlinux
 		# move/copy files to db and add them
 		# if update==true, only add more recent packages
 		# pkgs should be a PackageFiles or a PackageList or a list of files
-		def add_to_db(pkgs, update: true, op: :cp)
+		def add_to_db(pkgs, update: true, op: :cp, force_sign: false)
 			if update
 				pkgs=PackageFiles.create(pkgs).packages unless pkgs.is_a? PackageList
 				up=self.packages.check_updates(pkgs)
@@ -293,7 +297,7 @@ module Archlinux
 			end
 			SH.logger.mark "Updating #{pkgs} in #{self}"
 			cp_pkgs=move_to_db(*pkgs, op: op)
-			add(*cp_pkgs)
+			add(*cp_pkgs, force_sign: force_sign)
 		end
 
 		#remove from db and also remove the package files
