@@ -288,6 +288,15 @@ Update the db according to the packages present in its folder
 				end
 			end
 
+			pkgs_cmd.add_command('graph') do |cmd|
+				cmd.takes_commands(false)
+				cmd.short_desc("List packages dependencies as a graph")
+				cmd.action do |*repos|
+					pkgs=PackageClass.packages(*repos)
+					puts pkgs.graph.dump
+				end
+			end
+
 			pkgs_cmd.add_command('compare') do |cmd|
 				cmd.takes_commands(false)
 				cmd.short_desc("Compare packages")
