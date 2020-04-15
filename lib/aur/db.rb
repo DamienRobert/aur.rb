@@ -273,13 +273,15 @@ module Archlinux
 		end
 
     # force the db to reflect the dir
-		def update(other=dir_packages, add_for: %i(upgrade downgrade install), rm_for: %i(obsolete), **showopts)
+    # this does not remove old dir versions, except if clean is passed
+		def update(other=dir_packages, add_for: %i(upgrade downgrade install), rm_for: %i(obsolete), clean: false, **showopts)
 			c=show_updates(other, **showopts)
 			to_add=c.select {|_k, u| add_for.include?(u[:op])}
 			to_rm=c.select {|_k, u| rm_for.include?(u[:op])}
 			add(*to_add.map { |_k,v| other[v[:out_pkg]].path })
 			# remove(*(r[:remove].map {|_k,v| packages[v[:in_pkg]].file.shellescape}))
 			remove(* to_rm.map {|_k,v| Query.strip(v[:in_pkg])})
+			clean_dir if clean
 			c
 		end
 
@@ -317,8 +319,8 @@ module Archlinux
 
 		# In clean, we clean the dir packages which are newer or not present in
 		# the db. This is like the reverse of `update`. In particular be
-		# careful that this will delete newer versions or added versions
-		# ie this force the dir to match exactly the db
+		# careful that this will delete newer versions or added versions along
+		# with the older versions, ie this force the dir to match exactly the db
 		def clean(dry_run: true)
 			dir_pkgs=dir_packages_cls
 			dir_files=dir_pkgs.files

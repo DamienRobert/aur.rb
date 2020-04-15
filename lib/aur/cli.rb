@@ -178,6 +178,9 @@ Launch pacman with a custom config file which makes the db accessible.
 					opt.on("-v", "--[no-]version", "Add the package version") do |v|
 						cmd.data[:version]=v
 					end
+					opt.on("-d", "--[no-]dir", "List the directory packages") do |v|
+						cmd.data[:dir]=v
+					end
 					opt.on("-f", "--[no-]file[=full]", "Show the file name") do |v|
 						cmd.data[:file]=v
 					end
@@ -186,15 +189,22 @@ Launch pacman with a custom config file which makes the db accessible.
 					end
 				end
 				cmd.action do ||
-				  if cmd.data[:file]
-					  db=Archlinux.config.db
-					  SH.logger.mark "#{db.file}:" unless cmd.data[:quiet]
-					  db.packages.list_paths(cmd.data[:file]=="full", quiet: cmd.data[:quiet])
+					db=Archlinux.config.db
+				  if cmd.data[:dir]
+					  SH.logger.mark "#{db.dir}:" unless cmd.data[:quiet]
+				    if cmd.data[:file]
+					    db.dir_packages.list_paths(cmd.data[:file]=="full", quiet: cmd.data[:quiet])
+					  else
+					    db.dir_packages.list(cmd.data[:version], quiet: cmd.data[:quiet])
+					  end
 				  else
-					  db=Archlinux.config.db
 					  SH.logger.mark "#{db.file}:" unless cmd.data[:quiet]
-					  db.packages.list(cmd.data[:version], quiet: cmd.data[:quiet])
-					end
+				    if cmd.data[:file]
+					    db.packages.list_paths(cmd.data[:file]=="full", quiet: cmd.data[:quiet])
+				    else
+					    db.packages.list(cmd.data[:version], quiet: cmd.data[:quiet])
+					  end
+				  end
 				end
 			end
 
@@ -261,10 +271,17 @@ Update the db according to the packages present in its folder
 					opt.on("-f", "--[no-]force", "Force clean (default to dry-run)") do |v|
 						cmd.data[:force]=v
 					end
+					opt.on("-d", "--[no-]dir", "Clean the dir", "This does not touch the db, but clean older packages") do |v|
+						cmd.data[:dir]=v
+					end
 				end
 				cmd.action do ||
 					db=Archlinux.config.db
-					paths=db.clean(dry_run: !cmd.data[:force])
+					if cmd.data[:dir]
+					  paths, pkgs=db.clean_dir(dry_run: !cmd.data[:force])
+					else
+					  paths=db.clean(dry_run: !cmd.data[:force])
+					end
 					if cmd.data[:force]
 						SH.logger.mark "Cleaned:"
 					else

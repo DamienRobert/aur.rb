@@ -157,21 +157,22 @@ module Archlinux
 			r
 		end
 
+    # for a db package, this is the corresponding filename
 		def file
 			@props[:filename] && Pathname.new(@props[:filename])
 		end
 
+    # for a file package, this is the full path
 		def path
 			file || Pathname.new(@props[:repo])
 		end
 
+    # for a db or a file package, this is the full path
 		def full_path
-		  if file
-		    if @props[:repo]
-          Pathname.new(@props[:repo]).dirname+file
-		    else
-		      file
-		    end
+		  if file and @props[:repo]
+        Pathname.new(@props[:repo]).dirname+file
+		  else
+		    path
 		  end
 		end
 
@@ -222,7 +223,7 @@ module Archlinux
 		end
 
 		def list_paths(full=false, quiet: false)
-			l= full ? values.map {|f| f.full_path}.sort : values.map {|f| f.file}.sort
+			l= full ? values.map {|f| f.full_path}.sort : values.map {|f| f.path}.sort
 			if quiet
 			  SH.logger.info l.join(' ')
 			else
