@@ -272,6 +272,7 @@ module Archlinux
 			c
 		end
 
+    # force the db to reflect the dir
 		def update(other=dir_packages, add_for: %i(upgrade downgrade install), rm_for: %i(obsolete), **showopts)
 			c=show_updates(other, **showopts)
 			to_add=c.select {|_k, u| add_for.include?(u[:op])}
@@ -283,7 +284,7 @@ module Archlinux
 		end
 
 		# move/copy files to db and add them
-		# if update==true, only add more recent packages
+		# if update==true, only add more recent packages; but don't downgrade them
 		# pkgs should be a PackageFiles or a PackageList or a list of files
 		def add_to_db(pkgs, update: true, op: :cp, force_sign: false)
 			if update
@@ -317,6 +318,7 @@ module Archlinux
 		# In clean, we clean the dir packages which are newer or not present in
 		# the db. This is like the reverse of `update`. In particular be
 		# careful that this will delete newer versions or added versions
+		# ie this force the dir to match exactly the db
 		def clean(dry_run: true)
 			dir_pkgs=dir_packages_cls
 			dir_files=dir_pkgs.files
