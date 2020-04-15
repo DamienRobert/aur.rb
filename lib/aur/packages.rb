@@ -165,6 +165,16 @@ module Archlinux
 			file || Pathname.new(@props[:repo])
 		end
 
+		def full_path
+		  if file
+		    if @props[:repo]
+          Pathname.new(@props[:repo]).dirname+file
+		    else
+		      file
+		    end
+		  end
+		end
+
 		def same?(other)
 			# @props.slice(*(@props.keys - [:repo])) == other.props.slice(*(other.props.keys - [:repo]))
 			slice=%i(version description depends provides opt_depends replaces conflicts)
@@ -200,11 +210,26 @@ module Archlinux
 			@versions.keys
 		end
 
-		def list(version=false)
+		def list(version=false, quiet: false)
 			l= version ? keys.sort : names.sort
-			l.each do |pkg|
-				SH.logger.info "- #{pkg}"
+			if quiet
+			  SH.logger.info l.join(' ')
+			else
+			  l.each do |pkg|
+				  SH.logger.info "- #{pkg}"
+			  end
 			end
+		end
+
+		def list_paths(full=false, quiet: false)
+			l= full ? values.map {|f| f.full_path}.sort : values.map {|f| f.file}.sort
+			if quiet
+			  SH.logger.info l.join(' ')
+			else
+			  l.each do |pkg|
+				  SH.logger.info "- #{pkg}"
+			  end
+	    end
 		end
 
 		def name_of(pkg)

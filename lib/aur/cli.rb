@@ -178,19 +178,22 @@ Launch pacman with a custom config file which makes the db accessible.
 					opt.on("-v", "--[no-]version", "Add the package version") do |v|
 						cmd.data[:version]=v
 					end
+					opt.on("-f", "--[no-]file[=full]", "Show the file name") do |v|
+						cmd.data[:file]=v
+					end
 					opt.on("-q", "--quiet", "Machine mode") do |v|
 						cmd.data[:quiet]=v
 					end
 				end
 				cmd.action do ||
-					db=Archlinux.config.db
-					if cmd.data[:quiet]
-						pkgs=db.packages
-						l= cmd.data[:version] ? pkgs.keys.sort : pkgs.names.sort
-						SH.logger.info l.join(' ')
-					else
-						SH.logger.mark "#{db.file}:"
-						db.packages.list(cmd.data[:version])
+				  if cmd.data[:file]
+					  db=Archlinux.config.db
+					  SH.logger.mark "#{db.file}:" unless cmd.data[:quiet]
+					  db.packages.list_paths(cmd.data[:file]=="full", quiet: cmd.data[:quiet])
+				  else
+					  db=Archlinux.config.db
+					  SH.logger.mark "#{db.file}:" unless cmd.data[:quiet]
+					  db.packages.list(cmd.data[:version], quiet: cmd.data[:quiet])
 					end
 				end
 			end
