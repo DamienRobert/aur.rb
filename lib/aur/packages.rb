@@ -24,8 +24,8 @@ module Archlinux
 					  SH.logger.warn "Unknown querier: #{querier}"
 					end
 					l=query.split(',')
-					recursive ? new.rget(*l) : new.get(*l)
-					new
+					list=recursive ? new.rget(*l) : new.get(*l)
+					new.slice(*list)
 				else
 					if (m=repo.match(/^:(.*)\Z/))
 						Repo.new(m[1]).packages
@@ -63,7 +63,9 @@ module Archlinux
 			return pkg1, pkg2
 		end
 	end
+
 	PackageError=Class.new(ArchlinuxError)
+
 	class Package
 		def self.create(v)
 			v.is_a?(self) ? v : self.new(v)
