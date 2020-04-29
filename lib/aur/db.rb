@@ -298,7 +298,7 @@ module Archlinux
 			else
 				pkgs=pkgs.map {|_k,v| v.path } if pkgs.is_a?(PackageList)
 			end
-			SH.logger.mark "Updating #{pkgs} in #{self}"
+			SH.logger.mark "Updating #{pkgs.map(&:to_s).join(', ')} in #{self}"
 			cp_pkgs=move_to_db(*pkgs, op: op)
 			add(*cp_pkgs, force_sign: force_sign)
 		end
