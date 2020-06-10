@@ -120,7 +120,7 @@ module Archlinux
 			aur=self.db(false)
 			if aur and !pacman[:repos].include?(aur.repo_name)
 				require 'uri'
-				pacman[:repos][aur.repo_name]={Server: ["file://#{DR::URIEscape.escape(aur.dir.to_s)}"]}
+				pacman[:repos][aur.repo_name]={Server: ["file://#{DR::URI::URIEscape.escape(aur.dir.to_s)}"]}
 			end
 			pacman
 		end
