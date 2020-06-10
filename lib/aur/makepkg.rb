@@ -48,15 +48,22 @@ module Archlinux
 		end
 
 		def do_update
-			# we need to hard reset, because vercmp may have changed our PKGBUILD
-			# todo: only reset when there is an update?
-			# lets try with a theirs merge strat
-			# call("reset", "--hard")
-			# -> still does not work: error: Your local changes to the following files would be overwritten by merge: PKGBUILD
-			## suc, _r=call("pull", "-X", "theirs")
-			call("reset", "--hard")
-			suc, _r=call("pull")
-			suc
+		  # not: with --devel we already update the PKGBUILD to check for
+		  # pkgver() update; so we should not hard reset afterwards.
+		  if @did_update
+		    return true
+		  else
+		    @did_update=true
+			  # we need to hard reset, because vercmp may have changed our PKGBUILD
+			  # todo: only reset when there is an update?
+
+			  # lets try with a theirs merge strat
+			  # -> still does not work: error: Your local changes to the following files would be overwritten by merge: PKGBUILD
+			  ## suc, _r=call("pull", "-X", "theirs")
+			  call("reset", "--hard")
+			  suc, _r=call("pull")
+			  suc
+			end
 		end
 
 		def do_clone(url)
