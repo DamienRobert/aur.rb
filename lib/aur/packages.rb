@@ -552,9 +552,13 @@ module Archlinux
 		# take a list of packages to install, return the new or updated
 		# packages to install with their dependencies
 		def install?(*packages, update: false, install_list: @install_list, log_level: true, log_level_verbose: :verbose, ignore: @ignore, rebuild: false, no_show: [:obsolete], **showopts)
-			packages+=self.names if update
+			if update
+			  up_pkgs=self.names
+			  up_pkgs -= ignore #ignore updates of these packages
+				packages+=up_pkgs
+			end
 			if install_list
-				ignore -= packages.map {|p| Query.strip(p)}
+				ignore -= packages.map {|p| Query.strip(p)} #if we specify a package on the command line, consider it even if it is ignored
 				SH.log(log_level_verbose, "# Checking packages #{packages.join(', ')}", color: :bold)
 				new_pkgs=install_list.slice(*packages)
 				u, u_infos=get_updates(new_pkgs, log_level: log_level_verbose, ignore: ignore, rebuild: rebuild, no_show: no_show, **showopts)

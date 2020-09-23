@@ -131,6 +131,11 @@ Install of update packages
 				end
 			end
 			install_cmd.options do |opt|
+				opt.on("--ignore=pkg1,pkg2", Array, "Ignore these packages when updating") do |v|
+					install_cmd.data[:ignore]=v
+				end
+			end
+			install_cmd.options do |opt|
 				opt.on("--[no-]obsolete", "Also show obsolete packages", "Not that you will get false obsolete packages unless you specifically upgrade everything") do |v|
 					install_cmd.data[:obsolete]=v
 				end
@@ -141,7 +146,7 @@ Install of update packages
 					Archlinux.config[:default_install_list_class]=AurMakepkgCache
 				end
 				aur=Archlinux.config.default_packages
-				opts={update: install_cmd.data[:update], rebuild: install_cmd.data[:rebuild]}
+				opts={update: install_cmd.data[:update], rebuild: install_cmd.data[:rebuild], ignore: install_cmd.data[:ignore] || []}
 				opts[:no_show]=[] if install_cmd.data[:obsolete]
 				if install_cmd.data[:check]
 					aur.install?(*packages, **opts)
