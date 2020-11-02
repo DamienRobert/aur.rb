@@ -340,6 +340,7 @@ Update the db according to the packages present in its folder
 		parser.add_command('sign') do |cmd|
 			cmd.takes_commands(false)
 			cmd.short_desc("Sign files")
+			cmd.long_desc("Use @db to sign the db")
 			cmd.options do |opt|
 				opt.on("-f", "--[no-]force", "Overwrite existing signatures") do |v|
 					cmd.data[:force]=v
@@ -349,6 +350,7 @@ Update the db according to the packages present in its folder
 				end
 			end
 			cmd.action do |*files|
+			  files.map! {|f| f=="@db" ? @config.db.file : f }
 				if cmd.data[:verify]
 					Archlinux.config.verify_sign(*files)
 				else
