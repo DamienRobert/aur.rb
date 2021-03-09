@@ -167,6 +167,7 @@ module Archlinux
 				self.get(**get_options)
 			end
 			stdin=call("--printsrcinfo", chomp: :lines)
+			return {pkgs: {}} if stdin.empty?
 			mode=nil; r={}; current={}; pkgname=nil
 			stdin.each do |l|
 				key, value=l.split(/\s*=\s*/,2)
