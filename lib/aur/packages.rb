@@ -461,13 +461,33 @@ module Archlinux
 			tsort(l)
 		end
 
+		def ignore_package?(pkg, ignore: @ignore, unignore: nil)
+		  unless unignore.nil?
+		    return false if ignore_package?(pkg, ignore: unignore)
+		  end
+		  case ignore
+		  when Array
+		    ignore.include?(pkg)
+		  when Regexp
+		    ignore.match?(pkg)
+		  when Proc
+		    ignore.call(pkg)
+		  else
+		    raise PackageError.new("ignore_package: unknown ignore: #{@ignore}")
+		  end
+		end
+
+		def ignore_packages(pkgs, ignore: @ignore, unignore: nil)
+		  pkgs.select {|pkg| ! ignore_package?(pkg, ignore: ignore, unignore: unignore)}
+		end
+
 		# check updates compared to another list
-		def check_updates(l, ignore: @ignore)
+		def check_updates(l, ignore: @ignore, unignore: nil)
 			l=self.class.create(l)
 			a=self.latest; b=l.latest
 			r={}
 			b.each do |k, v|
-				next if ignore.include?(k)
+				next if ignore_package?(k, ignore: ignore, unignore: unignore)
 				if a.key?(k)
 					v1=a[k].version
 					v2=v.version
@@ -489,7 +509,7 @@ module Archlinux
 				end
 			end
 			(a.keys-b.keys).each do |k|
-				next if ignore.include?(k)
+				next if ignore_package?(k, ignore: ignore)
 				r[k]={op: :obsolete,
 					in: a[k].version.to_s,
 					out: nil, in_pkg: name_of(a[k])}
@@ -502,8 +522,8 @@ module Archlinux
 			return up.map {|_k, v| v[:out_pkg]}, up
 		end
 
-		def get_updates(l, log_level: true, ignore: @ignore, rebuild: false, **showopts)
-			c=check_updates(l, ignore: ignore)
+		def get_updates(l, log_level: true, ignore: @ignore, unignore: nil, rebuild: false, **showopts)
+			c=check_updates(l, ignore: ignore, unignore: unignore)
 			show_updates(c, log_level: log_level, **showopts)
 			if rebuild
 				# keep all packages
@@ -539,10 +559,10 @@ module Archlinux
 		# this take a list of packages which can be updates of ours
 		# return check_updates of this list (restricted to our current
 		# packages, so it won't show any 'install' operation
-		def check_update(updates=@install_list, ignore: @ignore)
+		def check_update(updates=@install_list, ignore: @ignore, unignore: nil)
 			return [] if updates.nil?
 			new_pkgs=updates.slice(*names) #ignore 'install' packages
-			check_updates(new_pkgs, ignore: ignore)
+			check_updates(new_pkgs, ignore: ignore, unignore: unignore)
 		end
 
 		def update?(**opts)
@@ -554,14 +574,14 @@ module Archlinux
 		def install?(*packages, update: false, install_list: @install_list, log_level: true, log_level_verbose: :verbose, ignore: @ignore, rebuild: false, no_show: [:obsolete], **showopts)
 			if update
 			  up_pkgs=self.names
-			  up_pkgs -= ignore #ignore updates of these packages
+			  up_pkgs = ignore_packages(up_pkgs, ignore: ignore) #ignore updates of these packages
 				packages+=up_pkgs
 			end
 			if install_list
-				ignore -= packages.map {|p| Query.strip(p)} #if we specify a package on the command line, consider it even if it is ignored
+				unignore = packages.map {|p| Query.strip(p)} #if we specify a package on the command line, consider it even if it is ignored
 				SH.log(log_level_verbose, "# Checking packages #{packages.join(', ')}", color: :bold)
 				new_pkgs=install_list.slice(*packages)
-				u, u_infos=get_updates(new_pkgs, log_level: log_level_verbose, ignore: ignore, rebuild: rebuild, no_show: no_show, **showopts)
+				u, u_infos=get_updates(new_pkgs, log_level: log_level_verbose, ignore: ignore, unignore: unignore, rebuild: rebuild, no_show: no_show, **showopts)
 				# todo: update this when we have a better preference mechanism
 				# (then we will need to put @official in the install package class)
 				new=self.class.new(l.values).merge(new_pkgs)
@@ -570,7 +590,7 @@ module Archlinux
 				SH.log(log_level_verbose, "# Checking dependencies of #{u.join(', ')}", color: :bold) unless u.empty?
 				full=new.rget(*u)
 				SH.log(log_level, "New packages:", color: :bold)
-				full_updates, full_infos=get_updates(new.slice(*full), log_level: log_level, ignore: ignore, rebuild: rebuild=="full" ? true : false, no_show: no_show, **showopts)
+				full_updates, full_infos=get_updates(new.slice(*full), log_level: log_level, ignore: ignore, unignore: unignore, rebuild: rebuild=="full" ? true : false, no_show: no_show, **showopts)
 				if rebuild and rebuild != "full" #we need to merge back u
 					full_updates |=u
 					full_infos.merge!(u_infos)

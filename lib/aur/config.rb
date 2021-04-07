@@ -211,10 +211,15 @@ module Archlinux
 		end
 
 		def to_packages(l=[], install: false)
-			Archlinux.create_class(
+			pkgs=Archlinux.create_class(
 				install ? @opts[:default_install_packages_class] :
 				@opts[:default_packages_class],
 				l, config: self)
+			configure_packages(pkgs, install: install)
+			pkgs
+		end
+
+		def configure_packages(pkgs, **kw)
 		end
 
 		#:package, :db
