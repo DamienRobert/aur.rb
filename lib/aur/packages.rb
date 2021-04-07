@@ -199,7 +199,8 @@ module Archlinux
 			@provides_for={} #hash of provides for quick look ups
 			@ext_query=nil #how to get missing packages, default
 			@children_mode=%i(depends) #children, default
-			@ignore=[] #ignore packages update
+			@ignore=[] #ignore packages update (for config file; for cli see the ignore parameter in install?)
+			@unignore=nil
 			@query_ignore=[] #query ignore packages (ie these won't be returned by a query; so stronger than @ignore)
 			@install_list=nil #how do we check for new packages / updates
 			@install_list_of=nil #are we used to check for new packages / updates
@@ -461,28 +462,31 @@ module Archlinux
 			tsort(l)
 		end
 
-		def ignore_package?(pkg, ignore: @ignore, unignore: nil)
-		  unless unignore.nil?
-		    return false if ignore_package?(pkg, ignore: unignore)
+		def ignore_package?(pkg, ignore: [], unignore: nil)
+		  l=lambda do |pkg, ign|
+		    case ign
+		    when Array
+		      ign.include?(pkg)
+		    when Regexp
+		      ign.match?(pkg)
+		    when Proc
+		      ign.call(pkg)
+		    else
+		      raise PackageError.new("ignore_package: unknown ignore: #{ign}")
+		    end
 		  end
-		  case ignore
-		  when Array
-		    ignore.include?(pkg)
-		  when Regexp
-		    ignore.match?(pkg)
-		  when Proc
-		    ignore.call(pkg)
-		  else
-		    raise PackageError.new("ignore_package: unknown ignore: #{@ignore}")
-		  end
+		  return ! l.call(pkg, @unignore) unless @unignore.nil?
+		  return ! l.call(pkg, unignore) unless unignore.nil?
+		  return true if l.call(pkg, @ignore)
+		  return l.call(pkg, ignore)
 		end
 
-		def ignore_packages(pkgs, ignore: @ignore, unignore: nil)
+		def ignore_packages(pkgs, ignore: [], unignore: nil)
 		  pkgs.select {|pkg| ! ignore_package?(pkg, ignore: ignore, unignore: unignore)}
 		end
 
 		# check updates compared to another list
-		def check_updates(l, ignore: @ignore, unignore: nil)
+		def check_updates(l, ignore: [], unignore: nil)
 			l=self.class.create(l)
 			a=self.latest; b=l.latest
 			r={}
@@ -522,7 +526,7 @@ module Archlinux
 			return up.map {|_k, v| v[:out_pkg]}, up
 		end
 
-		def get_updates(l, log_level: true, ignore: @ignore, unignore: nil, rebuild: false, **showopts)
+		def get_updates(l, log_level: true, ignore: [], unignore: nil, rebuild: false, **showopts)
 			c=check_updates(l, ignore: ignore, unignore: unignore)
 			show_updates(c, log_level: log_level, **showopts)
 			if rebuild
@@ -559,7 +563,7 @@ module Archlinux
 		# this take a list of packages which can be updates of ours
 		# return check_updates of this list (restricted to our current
 		# packages, so it won't show any 'install' operation
-		def check_update(updates=@install_list, ignore: @ignore, unignore: nil)
+		def check_update(updates=@install_list, ignore: [], unignore: nil)
 			return [] if updates.nil?
 			new_pkgs=updates.slice(*names) #ignore 'install' packages
 			check_updates(new_pkgs, ignore: ignore, unignore: unignore)
@@ -571,7 +575,7 @@ module Archlinux
 
 		# take a list of packages to install, return the new or updated
 		# packages to install with their dependencies
-		def install?(*packages, update: false, install_list: @install_list, log_level: true, log_level_verbose: :verbose, ignore: @ignore, rebuild: false, no_show: [:obsolete], **showopts)
+		def install?(*packages, update: false, install_list: @install_list, log_level: true, log_level_verbose: :verbose, ignore: [], rebuild: false, no_show: [:obsolete], **showopts)
 			if update
 			  up_pkgs=self.names
 			  up_pkgs = ignore_packages(up_pkgs, ignore: ignore) #ignore updates of these packages
