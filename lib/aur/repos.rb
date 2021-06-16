@@ -13,7 +13,7 @@ module Archlinux
 			@config=config
 		end
 
-		def list(mode: :pacsift)
+		def list(mode: :repo_name) #(mode: :pacsift)
 			command= case mode
 			when :pacman, :name
 				if @repo=="local"
@@ -23,12 +23,13 @@ module Archlinux
 				end
 			when :repo_name
 				#like pacsift, but using pacman
-				list(mode: :name).map {|i| @repo+"/"+i}
+				return list(mode: :name).map {|i| @repo+"/"+i}
 			when :pacsift
 				#this mode is prefered, so that if the same pkg is in different
-				#repo, than pacman_info returns the correct info
+				#repo, then pacman_info returns the correct info
 				#pacsift understand the 'local' repo
 				"pacsift --exact --repo=#{@repo.shellescape} <&-" #returns repo/pkg
+				# TODO: this now returns an empty string
 			when :paclist, :name_version
 				#cannot show the local repo; we could use `expac -Q '%n %v' but we
 				#don't use this mode anyway
