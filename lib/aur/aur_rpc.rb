@@ -53,7 +53,7 @@ module Archlinux
 		#  "Keywords"=>["AUR", "helper", "wrapper"]}]
 
 		def query(h, url: @config[:aur_url])
-			uri=URI("#{url}/rpc/")
+			uri=URI("#{url}/rpc")
 			params = {v:5}.merge(h)
 			uri.query = URI.encode_www_form(params)
 			SH.logger.debug "! AurQuery: new query '#{uri}'"

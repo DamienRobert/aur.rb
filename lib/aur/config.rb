@@ -41,7 +41,9 @@ module Archlinux
 			{
 				cache: "arch_aur", #where we dl PKGBUILDs; if relative will be in XDG_CACHE_HOME
 				db: 'aur', #if relative the db will be in cache dir
-				aur_url: "https://aur.archlinux.org/", #base aur url
+				aur_url: "https://aur.archlinux.org", #base aur url
+				#Warning: do not put the ending '/', it will be added by the code
+				#later, and two '//' will result in an error
 				chroot: {
 					root: "/var/lib/aurbuild/x86_64", #chroot root
 					active: false, #do we use the chroot?
