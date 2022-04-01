@@ -128,6 +128,12 @@ module Archlinux
 			@file.dirname
 		end
 
+    # the Pathname to the files db
+		def dbfiles
+		  #todo: make this cleaner
+		  Pathname.new(@file.to_s.sub('.db.', '.files.'))
+		end
+
 		def call(*args, **opts)
 			@config.launch(*args, **opts) do |*a, **o|
 				dir.chdir do

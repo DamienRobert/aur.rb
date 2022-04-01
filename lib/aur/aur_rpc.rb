@@ -53,7 +53,7 @@ module Archlinux
 		#  "Keywords"=>["AUR", "helper", "wrapper"]}]
 
 		def query(h, url: @config[:aur_url])
-			uri=URI("#{url}/rpc")
+			uri=URI(url) +"rpc"
 			params = {v:5}.merge(h)
 			uri.query = URI.encode_www_form(params)
 			SH.logger.debug "! AurQuery: new query '#{uri}'"
@@ -114,7 +114,7 @@ module Archlinux
 				end
 			end
 			if query
-				Net::HTTP.get_response(URI("#{@config[:aur_url]}/#{type}.gz")) do |res|
+				Net::HTTP.get_response(URI(@config[:aur_url]) + "#{type}.gz") do |res|
 					date=res["date"] #There are no 'Last-Modified' field, cf https://bugs.archlinux.org/task/49092
 					update=true
 					if date

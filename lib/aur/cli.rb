@@ -350,7 +350,16 @@ Update the db according to the packages present in its folder
 				end
 			end
 			cmd.action do |*files|
-			  files.map! {|f| f=="@db" ? @config.db.file : f }
+			  files.map! do |f|
+			    case f
+			    when "@db"
+			      @config.db.file
+			    when "@dbfiles"
+			      @config.db.dbfiles
+			    else
+			      f
+			    end
+			  end
 				if cmd.data[:verify]
 					Archlinux.config.verify_sign(*files)
 				else

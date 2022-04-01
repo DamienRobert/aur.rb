@@ -18,14 +18,19 @@ module Archlinux
 		end
 
 		def url
-			url=URI.parse(@url)
-			url.relative? ? @config[:aur_url]+@url.to_s+".git" : url
+		  url=URI.parse(@url)
+			url.relative? ? URI(@config[:aur_url])+"#{@url}.git" : url
 		end
 
 		def call(*args,**opts,&b)
 			opts[:method]||=:sh
-			@dir.chdir do
-				@config.launch(:git, *args, **opts, &b)
+			begin
+			  @dir.chdir do
+				  @config.launch(:git, *args, **opts, &b)
+			  end
+			rescue => e
+				SH.logger.error("Error in running git: #{e}")
+				return false
 			end
 		end
 
@@ -148,15 +153,25 @@ module Archlinux
 
 		# raw call to makepkg
 		def makepkg(*args, **opts)
-			raw_call(*args, method: :sh, **opts)
+		  begin
+			  raw_call(*args, method: :sh, **opts)
+			rescue => e
+				SH.logger.error("Error in running makepkg: #{e}")
+				return false
+			end
 		end
 
 		def call(*args, **opts)
 			tools=@config.local_devtools #this set up pacman and makepkg config files
 			env=opts.delete(:env) || {}
 			opts[:method]||=:run_simple
-			@dir.chdir do
-				tools.makepkg(*args, env: @env.merge(env), **opts)
+			begin
+			  @dir.chdir do
+				  tools.makepkg(*args, env: @env.merge(env), **opts)
+			  end
+			rescue => e
+				SH.logger.error("Error in calling makepkg: #{e}")
+				return false
 			end
 		end
 
@@ -272,20 +287,25 @@ module Archlinux
 		end
 
 		def makechroot(*args, sign: @config&.use_sign?(:package), force: false, **opts)
-			unless force
-				if list.all? {|f| f.exist?}
-					SH.logger.info "Skipping #{@dir} since it is already built (use force=true to override)"
-					return true #consider this a success build
-				end
+		  begin
+			  unless force
+				  if list.all? {|f| f.exist?}
+					  SH.logger.info "Skipping #{@dir} since it is already built (use force=true to override)"
+					  return true #consider this a success build
+				  end
+			  end
+			  devtools=@config.chroot_devtools
+			  success=false
+			  @dir.chdir do
+				  success=devtools.makechrootpkg(*args, env: @env, **opts)
+			  end
+			  ## signing should be done by 'build'
+			  # self.sign(sign_name: sign) if sign and success
+			  success
+			rescue => e
+				SH.logger.error("Error in running makechroot: #{e}")
+				return false
 			end
-			devtools=@config.chroot_devtools
-			success=false
-			@dir.chdir do
-				success=devtools.makechrootpkg(*args, env: @env, **opts)
-			end
-			## signing should be done by 'build'
-			# self.sign(sign_name: sign) if sign and success
-			success
 		end
 
 		def build(*makepkg_args, mkarchroot: false, chroot: @config.dig(:chroot, :active), **opts)
